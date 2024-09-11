@@ -1,7 +1,7 @@
 import pygame as pg
 from functions import *
 import math
-from random import randint
+from random import randint, choice
 from time import time
 
 window_width, window_height = 900, 500
@@ -13,7 +13,10 @@ clock = pg.time.Clock()
 fps = 60
 
 assets: dict[str: pg.Surface] = {}
-assets.update(load_assets("assets", scale=4))
+assets.update(load_assets("assets"))
+assets.update(load_assets("assets/Ship", scale=4))
+
+sky_start = -150
 
 
 pg.display.set_icon(assets["Ship"])
@@ -53,6 +56,10 @@ class Ship:
         self.mask = pg.mask.from_surface(self.rotatedImage)
 
     def script(self):
+        # checking if ship is in valid area
+        if self.rect.y < sky_start:
+            self.vel -= 2
+
         # getting inputs
         keys = pg.key.get_pressed()
         if keys[pg.K_d]:
@@ -95,9 +102,10 @@ class Object(pg.sprite.Sprite):
     def __init__(self, x, y, name) -> None:
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
         self.name = name
+        self.scale = randint(10, 40)*0.1
         self.rotation = randint(-100, 100)*0.01
         if self.rotation == 0: self.rotation += 0.1 
-        self.rotatedImage = pg.transform.rotate(assets[name], self.angle)
+        self.rotatedImage = pg.transform.rotate(pg.transform.scale_by(assets[self.name], self.scale), self.angle)
         self.mask = pg.mask.from_surface(self.rotatedImage)
 
     def display(self, window, x_offset, y_offset):
@@ -115,7 +123,7 @@ class Object(pg.sprite.Sprite):
         self.reload()
 
     def reload(self):
-        self.rotatedImage = pg.transform.rotate(assets[self.name], self.angle)
+        self.rotatedImage = pg.transform.rotate(pg.transform.scale_by(assets[self.name], self.scale), self.angle)
         self.rect = self.rotatedImage.get_rect(
             center=self.rect.center
         )
@@ -125,6 +133,9 @@ class Object(pg.sprite.Sprite):
 ship = Ship(100, 100, "Ship")
 objects = [Object(200, 100, "Plank")]
 
+scroll_area = 100
+x_offset, y_offset = 0, 0
+
 while run:
     clock.tick(fps)
 
@@ -132,8 +143,9 @@ while run:
         if event.type == pg.QUIT:
             run = False
 
+
     if randint(0, fps*10) == 0:
-        objects.append(Object(randint(0, window_width-100), -100, "Plank"))
+        objects.append(Object(randint(ship.rect.centerx - window_width//2, ship.rect.centerx + window_width//2), -100, choice(("Plank", "Rock"))))
 
     ship.script()
     for obj in objects:
@@ -144,13 +156,28 @@ while run:
             ship.time_since_disabled = time()
             obj.x_vel = -ship.hrt_vel
             obj.y_vel = -ship.vrt_vel
-        if obj.rect.y > window_height:
-            objects.remove(obj)
+
+
+    # scrolling of the game window
+    if ship.rect.x - x_offset < scroll_area:
+        x_offset -= round(abs(ship.hrt_vel))
+
+    if ship.rect.x - x_offset > window_width - scroll_area:
+        x_offset += round(abs(ship.hrt_vel))
+    
+    if ship.rect.y - y_offset < scroll_area:
+        y_offset -= round(abs(ship.vrt_vel))
+
+    if ship.rect.y - y_offset > window_height - scroll_area:
+        y_offset += round(abs(ship.vrt_vel))
+
+
 
     window.fill((0, 0, 139))
+    window.blit(assets["Sky"], (0, sky_start-500-y_offset))
     for obj in objects:
-        obj.display(window, 0, 0)
-    ship.display(window, 0, 0)
+        obj.display(window, x_offset, y_offset)
+    ship.display(window, x_offset, y_offset)
     pg.display.update()
 
 pg.quit()
