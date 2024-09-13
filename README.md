@@ -12,3 +12,4 @@ of this has to be done while worrying about the natural predators, fuel and ship
 + Inventory Slots & General Improvement.
 + Inventory & Items!
 + Item Collection & Ship Health.
++ Sound Effects
