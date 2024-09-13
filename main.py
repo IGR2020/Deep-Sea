@@ -180,7 +180,7 @@ while run:
         y_offset += round(abs(ship.vrt_vel)) + 1
 
     if ship.rect.y > ship.pressure_limit:
-        kill("from the pressure.")
+        kill("The pressure exceded your ship's capacity")
 
     window.fill((0, 0, 139))
     window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
@@ -193,7 +193,6 @@ while run:
     current_pressure_rect.width = 96 * ship.rect.y/ship.pressure_limit
     current_pressure = min(max(ship.rect.y/ship.pressure_limit, 0), 1)
     pg.draw.rect(window, (255 * current_pressure, 255 * (1 - current_pressure), 0), current_pressure_rect)
-
     pg.display.update()
 
 pg.quit()

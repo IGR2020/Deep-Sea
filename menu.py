@@ -5,6 +5,9 @@ from assets import *
 def kill(death_message):
     global run
 
+    background = pg.Surface((window_width, window_height))
+    background.blit(window, (0, 0))
+
     heading = Text("You Died.", window_width/2, window_height/2, (255, 255, 255), 80, "arialblack", True)
     subText = Text("From what?", window_width/2, window_height/2+65, (255, 255, 255), 30, "arialbalck", True)
     deathText = Text(death_message, window_width/2, window_height/2+110, (255, 255, 255), 50, "arialbalck", True)
@@ -17,7 +20,7 @@ def kill(death_message):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 run = False
-            if event.type == pg.KEYUP:
+            if event.type == pg.KEYDOWN:
                 run = False
         
         returnMessage.rect.y += float_count
@@ -27,7 +30,7 @@ def kill(death_message):
             float_count = -1
 
 
-        window.fill((0, 0, 0))
+        window.blit(background, (0, 0))
         heading.display(window)
         subText.display(window)
         deathText.display(window)
@@ -35,3 +38,5 @@ def kill(death_message):
         pg.display.update()
 
     pg.quit()
+    quit()
+

@@ -1,6 +1,7 @@
 import pygame as pg
 from os import listdir
 from os.path import isfile, isdir, join
+import json
 
 def blit_text(
     win,
@@ -68,3 +69,10 @@ def load_assets_list(path, size: int = None, scale: float = None):
         else:
             sprites.append(pg.transform.scale(pg.image.load(join(path, file)), size))
     return sprites
+
+
+def loadJson(path):
+    with open(path) as file:
+        data = json.load(file)
+        file.close()
+    return data
