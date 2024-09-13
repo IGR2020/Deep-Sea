@@ -5,3 +5,10 @@ of this has to be done while worrying about the natural predators, fuel and ship
 
 # Update Logs
 ## Beta 1
++ Initial Ship.
++ Sea Debris.
++ Sky & Rocks.
++ Death screen & pressure limit (depth limit).
++ Inventory Slots & General Improvement.
++ Inventory & Items!
++ Item Collection & Ship Health.
