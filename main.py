@@ -5,6 +5,7 @@ from random import randint, choice
 from time import time
 from assets import *
 from menu import kill
+from GUI import Text
 
 sky_start = -150
 
@@ -22,7 +23,8 @@ class Ship:
     disabled_time = 0.5
     time_since_disabled = 0
     pressure_limit = 2_000
-    health = 100
+    health = 200
+    max_health = health
 
     def __init__(self, x, y, name):
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
@@ -137,8 +139,13 @@ scroll_area = 200
 x_offset, y_offset = 0, 0
 
 pressure = 0
-pressure_rect = pg.Rect(0, 0, 100, 25)
-current_pressure_rect = pg.Rect(4, 4, 92, 17)
+pressureText = Text("Pressure", 0, 0, (255, 255, 255), 30, "Retro Font")
+pressure_rect = pg.Rect(0, pressureText.rect.bottom, 100, 25)
+current_pressure_rect = pg.Rect(4, 4+pressureText.rect.bottom, 92, 17)
+
+healthText = Text("Health", 0, pressure_rect.bottom + 10, (255, 255, 255), 30, "Retro Font")
+healthRect = pg.Rect(0, healthText.rect.bottom, 100, 25)
+current_health_rect = pg.Rect(4, 4+healthText.rect.bottom, 92, 17)
 
 while run:
     clock.tick(fps)
@@ -164,14 +171,15 @@ while run:
         obj.script()
         if pg.sprite.collide_mask(ship, obj):
             if obj.health < 1:
-                for slot in slots:
-                    if slot.name == itemsData[obj.name]["Drop"]:
-                        slot.count += 1
-                        break
-                    if slot.name is None:
-                        slot.name = itemsData[obj.name]["Drop"]
-                        slot.count += 1
-                        break
+                for drop in itemsData[obj.name]["Drops"]:
+                    for slot in slots:
+                        if slot.name == drop:
+                            slot.count += randint(*itemsData[obj.name]["Count"])
+                            break
+                        if slot.name is None:
+                            slot.name = drop
+                            slot.count += randint(*itemsData[obj.name]["Count"])
+                            break
                 objects.remove(obj)
                 break
             obj.health -= abs(ship.vel)
@@ -196,7 +204,10 @@ while run:
         y_offset += round(abs(ship.vrt_vel)) + 1
 
     if ship.rect.y > ship.pressure_limit:
-        kill("The pressure exceded your ship's capacity")
+        kill("High pressure.")
+
+    if ship.health < 1:
+        kill("Ship damaged too much")
 
     window.fill((0, 0, 139))
     window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
@@ -206,9 +217,18 @@ while run:
 
     # displaying pressure
     pg.draw.rect(window, (0, 0, 0), pressure_rect)
-    current_pressure_rect.width = 96 * ship.rect.y/ship.pressure_limit
     current_pressure = min(max(ship.rect.y/ship.pressure_limit, 0), 1)
+    current_pressure_rect.width = 92 * current_pressure
     pg.draw.rect(window, (255 * current_pressure, 255 * (1 - current_pressure), 0), current_pressure_rect)
+    pressureText.display(window)
+
+    # displaying health
+    current_health = ship.health/ship.max_health
+    current_health_rect.width = 92 * current_health
+    healthText.display(window)
+    pg.draw.rect(window, (0, 0, 0), healthRect)
+    pg.draw.rect(window, (255 * current_health, 255 * (1 - current_health), 0), current_health_rect)
+
 
     # displaying inventory
     window.blit(assets[inventoryImageName], (inventoryX, inventoryY))

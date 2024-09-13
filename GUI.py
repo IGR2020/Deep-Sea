@@ -1,11 +1,6 @@
 import pygame as pg
 from assets import *
 
-class Slot:
-    def __init__(self, x, y, width, height, name, count) -> None:
-        self.rect = pg.Rect(x, y, width, height)
-        self.name = name
-        self.count = count
 
 class Button():
     def __init__(self, pos, releasedImage, pressedImage, *args):
@@ -108,6 +103,7 @@ class Button():
             return False
         return False
 
+
 class Text():
     def __init__(self, text, x, y, color, size, font,  center=False, centerx=False, centery=False) -> None:
 
@@ -119,7 +115,7 @@ class Text():
         self.font = font
 
         # creating text surface
-        font_style = pg.font.SysFont(self.font, self.size)
+        font_style = pg.font.Font(fontLocation + self.font + ".ttf", self.size)
         text_surface = font_style.render(self.text, True, self.color)
         if center:
             x -= text_surface.get_width() // 2
@@ -137,7 +133,7 @@ class Text():
 
     
     def reload(self, reloadRect=True):
-        font_style = pg.font.SysFont(self.font, self.size)
+        font_style = pg.font.Font(fontLocation + self.font + ".ttf", self.size)
         text_surface = font_style.render(self.text, True, self.color)
 
         self.image = text_surface

@@ -1,6 +1,6 @@
 import pygame as pg
-from GUI import Text
 from assets import *
+from GUI import Text
 
 def kill(death_message):
     global run
@@ -8,10 +8,10 @@ def kill(death_message):
     background = pg.Surface((window_width, window_height))
     background.blit(window, (0, 0))
 
-    heading = Text("You Died.", window_width/2, window_height/2, (255, 255, 255), 80, "arialblack", True)
-    subText = Text("From what?", window_width/2, window_height/2+65, (255, 255, 255), 30, "arialbalck", True)
-    deathText = Text(death_message, window_width/2, window_height/2+110, (255, 255, 255), 50, "arialbalck", True)
-    returnMessage = Text("Press any key to quit (restart not yet available)", window_width/2, window_height*0.8, (255, 255, 255), 50, "arialbalck", True)
+    heading = Text("You Died.", window_width/2, window_height/2, (255, 255, 255), 80, "Arialblack", True)
+    subText = Text("From what?", window_width/2, window_height/2+65, (255, 255, 255), 30, "Arialblack", True)
+    deathText = Text(death_message, window_width/2, window_height/2+110, (255, 255, 255), 50, "Arialblack", True)
+    returnMessage = Text("Press any key to quit (restart not yet available)", window_width/2, window_height*0.8, (255, 255, 255), 30, "Arialblack", True)
     float_count = 1
 
     while run:
@@ -39,4 +39,3 @@ def kill(death_message):
 
     pg.quit()
     quit()
-

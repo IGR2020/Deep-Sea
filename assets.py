@@ -1,6 +1,11 @@
 import pygame as pg
 from functions import load_assets, loadJson
-from GUI import Slot
+
+class Slot:
+    def __init__(self, x, y, width, height, name, count) -> None:
+        self.rect = pg.Rect(x, y, width, height)
+        self.name = name
+        self.count = count
 
 pg.font.init()
 
@@ -21,6 +26,8 @@ object_image_names = load_assets("assets/Objects")
 assets.update(object_image_names)
 object_image_names = list(object_image_names.keys())
 assets.update(load_assets("assets/items", scale=3))
+
+fontLocation = "assets/GUI/"
 
 coordinates = loadJson("coordinates.json")
 itemsData = loadJson("items.json")
