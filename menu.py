@@ -5,6 +5,8 @@ from GUI import Text
 def kill(death_message):
     global run
 
+    backgroundMusic.stop()
+
     background = pg.Surface((window_width, window_height))
     background.blit(window, (0, 0))
 

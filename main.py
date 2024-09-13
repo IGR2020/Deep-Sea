@@ -147,6 +147,9 @@ healthText = Text("Health", 0, pressure_rect.bottom + 10, (255, 255, 255), 30, "
 healthRect = pg.Rect(0, healthText.rect.bottom, 100, 25)
 current_health_rect = pg.Rect(4, 4+healthText.rect.bottom, 92, 17)
 
+
+backgroundMusic.play()
+
 while run:
     clock.tick(fps)
 
@@ -170,6 +173,7 @@ while run:
     for obj in objects:
         obj.script()
         if pg.sprite.collide_mask(ship, obj):
+            breakSound.play()
             if obj.health < 1:
                 for drop in itemsData[obj.name]["Drops"]:
                     for slot in slots:
