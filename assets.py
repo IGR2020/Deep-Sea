@@ -31,11 +31,9 @@ assets.update(load_assets("assets/items", scale=3))
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
-backgroundMusic.set_volume(0.5)
+backgroundMusic.set_volume(0.7)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
-metalBang = pg.mixer.Sound("assets/Sounds/Metal Bang.mp3")
-metalBang.set_volume(0.5)
 
 # defines location of font for Text object
 fontLocation = "assets/GUI/"
