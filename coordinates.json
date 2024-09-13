@@ -1,9 +1,9 @@
 {
     "Brown Slots": {
-        "Initial": [5, 4],
+        "Initial": [3, 2],
         "Continuous": [2, 2],
         "X range": 3,
-        "Y range": 4,
+        "Y range": 10,
         "Size": [15, 15]
     }
 }

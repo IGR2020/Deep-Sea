@@ -1,6 +1,11 @@
 import pygame as pg
 from assets import *
 
+class Slot:
+    def __init__(self, x, y, width, height, name, count) -> None:
+        self.rect = pg.Rect(x, y, width, height)
+        self.name = name
+        self.count = count
 
 class Button():
     def __init__(self, pos, releasedImage, pressedImage, *args):

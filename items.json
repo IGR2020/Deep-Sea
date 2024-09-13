@@ -1,0 +1,4 @@
+{
+    "Plank": {"Health": 8, "Drop": "wood", "Damage": 3},
+    "Rock": {"Health": 24, "Drop": "stone", "Damage": 7}
+}

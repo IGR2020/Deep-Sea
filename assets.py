@@ -1,5 +1,6 @@
 import pygame as pg
 from functions import load_assets, loadJson
+from GUI import Slot
 
 pg.font.init()
 
@@ -19,8 +20,10 @@ assets["Sky"].fill((51, 153, 255))
 object_image_names = load_assets("assets/Objects")
 assets.update(object_image_names)
 object_image_names = list(object_image_names.keys())
+assets.update(load_assets("assets/items", scale=3))
 
 coordinates = loadJson("coordinates.json")
+itemsData = loadJson("items.json")
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"
@@ -39,7 +42,7 @@ slotHeight *= inventoryScale
 for x in range(coordinates[inventoryImageName]["X range"]):
     for y in range(coordinates[inventoryImageName]["Y range"]):
         slots.append(
-            pg.Rect(inventoryX + slotRelX, inventoryY + slotRelY, slotWidth, slotHeight)
+            Slot(inventoryX + slotRelX, inventoryY + slotRelY, slotWidth, slotHeight, None, 0)
         )
         slotRelY += slotHeight + coordinates[inventoryImageName]["Continuous"][1] * inventoryScale
     slotRelX += slotWidth + coordinates[inventoryImageName]["Continuous"][0] * inventoryScale

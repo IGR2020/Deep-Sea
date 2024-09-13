@@ -22,6 +22,7 @@ class Ship:
     disabled_time = 0.5
     time_since_disabled = 0
     pressure_limit = 2_000
+    health = 100
 
     def __init__(self, x, y, name):
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
@@ -100,10 +101,12 @@ class Object(pg.sprite.Sprite):
         self.rotation = randint(-100, 100) * 0.01
         if self.rotation == 0:
             self.rotation += 0.1
+        self.scaledImage = pg.transform.scale_by(assets[self.name], self.scale)
         self.rotatedImage = pg.transform.rotate(
-            pg.transform.scale_by(assets[self.name], self.scale), self.angle
+            self.scaledImage, self.angle
         )
         self.mask = pg.mask.from_surface(self.rotatedImage)
+        self.health = itemsData[self.name]["Health"]
 
     def display(self, window, x_offset, y_offset):
         window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
@@ -121,7 +124,7 @@ class Object(pg.sprite.Sprite):
 
     def reload(self):
         self.rotatedImage = pg.transform.rotate(
-            pg.transform.scale_by(assets[self.name], self.scale), self.angle
+            self.scaledImage, self.angle
         )
         self.rect = self.rotatedImage.get_rect(center=self.rect.center)
         self.mask = pg.mask.from_surface(self.rotatedImage)
@@ -130,7 +133,7 @@ class Object(pg.sprite.Sprite):
 ship = Ship(100, 100, "Ship")
 objects = [Object(200, 100, "Plank")]
 
-scroll_area = 100
+scroll_area = 200
 x_offset, y_offset = 0, 0
 
 pressure = 0
@@ -160,6 +163,19 @@ while run:
     for obj in objects:
         obj.script()
         if pg.sprite.collide_mask(ship, obj):
+            if obj.health < 1:
+                for slot in slots:
+                    if slot.name == itemsData[obj.name]["Drop"]:
+                        slot.count += 1
+                        break
+                    if slot.name is None:
+                        slot.name = itemsData[obj.name]["Drop"]
+                        slot.count += 1
+                        break
+                objects.remove(obj)
+                break
+            obj.health -= abs(ship.vel)
+            ship.health -= itemsData[obj.name]["Damage"]
             ship.vel = -ship.vel
             ship.disabled = True
             ship.time_since_disabled = time()
@@ -193,6 +209,14 @@ while run:
     current_pressure_rect.width = 96 * ship.rect.y/ship.pressure_limit
     current_pressure = min(max(ship.rect.y/ship.pressure_limit, 0), 1)
     pg.draw.rect(window, (255 * current_pressure, 255 * (1 - current_pressure), 0), current_pressure_rect)
+
+    # displaying inventory
+    window.blit(assets[inventoryImageName], (inventoryX, inventoryY))
+    for slot in slots:
+        if slot.name is not None:
+            window.blit(assets[slot.name], slot.rect)
+            blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
+
     pg.display.update()
 
 pg.quit()
