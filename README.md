@@ -14,3 +14,4 @@ of this has to be done while worrying about the natural predators, fuel and ship
 + Item Collection & Ship Health.
 + Sound Effects.
 + Bubbles & Inventory Management.
++ Iron Ore & Upgrades!
