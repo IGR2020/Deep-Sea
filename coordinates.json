@@ -5,5 +5,12 @@
         "X range": 3,
         "Y range": 10,
         "Size": [15, 15]
+    },
+    "Brown Hotbar": {
+        "Initial": [5, 4],
+        "Continuous": [2, 2],
+        "X range": 9,
+        "Y range": 1,
+        "Size": [15, 15]
     }
 }

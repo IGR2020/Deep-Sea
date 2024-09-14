@@ -104,9 +104,7 @@ class Object(pg.sprite.Sprite):
         if self.rotation == 0:
             self.rotation += 0.1
         self.scaledImage = pg.transform.scale_by(assets[self.name], self.scale)
-        self.rotatedImage = pg.transform.rotate(
-            self.scaledImage, self.angle
-        )
+        self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.mask = pg.mask.from_surface(self.rotatedImage)
         self.health = itemsData[self.name]["Health"]
 
@@ -125,15 +123,39 @@ class Object(pg.sprite.Sprite):
         self.reload()
 
     def reload(self):
-        self.rotatedImage = pg.transform.rotate(
-            self.scaledImage, self.angle
-        )
+        self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.rect = self.rotatedImage.get_rect(center=self.rect.center)
         self.mask = pg.mask.from_surface(self.rotatedImage)
 
 
+class Particle:
+    outOfView = False
+
+    def __init__(self, name, x, y, y_vel, x_vel):
+        self.x, self.y = x, y
+        self.name = name
+        self.y_vel = y_vel
+        self.x_vel = x_vel
+
+    def display(self, window, x_offset, y_offset):
+        if self.outOfView:
+            return
+        self.x += self.x_vel
+        self.y += self.y_vel
+        window.blit(assets[self.name], (self.x - x_offset, self.y - y_offset))
+        if (
+            self.x - x_offset < -window_width
+            or self.x - x_offset > window_width * 2
+            or self.y - y_offset < -window_height
+            or self.y - y_offset > window_height * 2
+        ):
+            self.outOfView = True
+
+
 ship = Ship(100, 100, "Ship")
-objects = [Object(200, 100, "Plank")]
+objects = [Object(200, 100, "Plank"), Object(300, 200, "Plank")]
+
+bubbles = []
 
 scroll_area = 200
 x_offset, y_offset = 0, 0
@@ -141,14 +163,18 @@ x_offset, y_offset = 0, 0
 pressure = 0
 pressureText = Text("Pressure", 0, 0, (255, 255, 255), 30, "Retro Font")
 pressure_rect = pg.Rect(0, pressureText.rect.bottom, 100, 25)
-current_pressure_rect = pg.Rect(4, 4+pressureText.rect.bottom, 92, 17)
+current_pressure_rect = pg.Rect(4, 4 + pressureText.rect.bottom, 92, 17)
 
-healthText = Text("Health", 0, pressure_rect.bottom + 10, (255, 255, 255), 30, "Retro Font")
+healthText = Text(
+    "Health", 0, pressure_rect.bottom + 10, (255, 255, 255), 30, "Retro Font"
+)
 healthRect = pg.Rect(0, healthText.rect.bottom, 100, 25)
-current_health_rect = pg.Rect(4, 4+healthText.rect.bottom, 92, 17)
+current_health_rect = pg.Rect(4, 4 + healthText.rect.bottom, 92, 17)
 
+inventoryView = True
+inventoryShift = 0
 
-backgroundMusic.play()
+backgroundMusic.play(-1)
 
 while run:
     clock.tick(fps)
@@ -156,6 +182,34 @@ while run:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             run = False
+
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_e:
+                inventoryView = not inventoryView
+
+        if event.type == pg.MOUSEBUTTONUP:
+            if inventoryView:
+                for slot in slots:
+                    if slot.rect.collidepoint(mouseX, mouseY):
+                        if slot.name == heldItem.name and heldItem.name is not None:
+                            slot.count += heldItem.count
+                            heldItem.name = None
+                            heldItem.count = None
+                        else:
+                            heldItem.name, slot.name = slot.name, heldItem.name
+                            heldItem.count, slot.count = slot.count, heldItem.count
+                for slot in hotbarSlots:
+                    if slot.rect.collidepoint(mouseX, mouseY):
+                        if slot.name == heldItem.name and heldItem.name is not None:
+                            slot.count += heldItem.count
+                            heldItem.name = None
+                            heldItem.count = None
+                        else:
+                            heldItem.name, slot.name = slot.name, heldItem.name
+                            heldItem.count, slot.count = slot.count, heldItem.count
+
+    # extracting mouse position
+    mouseX, mouseY = pg.mouse.get_pos()  
 
     if randint(0, fps * 10) == 0:
         objects.append(
@@ -207,39 +261,82 @@ while run:
     if ship.rect.y - y_offset > window_height - scroll_area:
         y_offset += round(abs(ship.vrt_vel)) + 1
 
+    # checking for kill events
     if ship.rect.y > ship.pressure_limit:
         kill("High pressure.")
 
     if ship.health < 1:
         kill("Ship damaged too much")
 
+    # setting inventory shift
+    if inventoryView and inventoryX > window_width - inventoryWidth:
+        inventoryShift = -3
+    elif not inventoryView and inventoryX < window_width:
+        inventoryShift = 3
+    else:
+        inventoryShift = 0
+
+    # creating bubbles & removing bubbles
+    if (ship.disabled and randint(0, 10) == 0) or (abs(ship.vel) < 1  and randint(0, 30) == 0):
+        bubbles.append(Particle("Bubble", ship.rect.x + randint(-30, 30), ship.rect.y, -1.5, 0))
+    for bubble in bubbles:
+        if bubble.outOfView:
+            bubbles.remove(bubble)
+
     window.fill((0, 0, 139))
     window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
     for obj in objects:
         obj.display(window, x_offset, y_offset)
+
+    # rendering bubbles
+    for bubble in bubbles:
+        bubble.display(window, x_offset, y_offset)
+    
     ship.display(window, x_offset, y_offset)
 
     # displaying pressure
     pg.draw.rect(window, (0, 0, 0), pressure_rect)
-    current_pressure = min(max(ship.rect.y/ship.pressure_limit, 0), 1)
+    current_pressure = min(max(ship.rect.y / ship.pressure_limit, 0), 1)
     current_pressure_rect.width = 92 * current_pressure
-    pg.draw.rect(window, (255 * current_pressure, 255 * (1 - current_pressure), 0), current_pressure_rect)
+    pg.draw.rect(
+        window,
+        (255 * current_pressure, 255 * (1 - current_pressure), 0),
+        current_pressure_rect,
+    )
     pressureText.display(window)
 
     # displaying health
-    current_health = ship.health/ship.max_health
+    current_health = ship.health / ship.max_health
     current_health_rect.width = 92 * current_health
     healthText.display(window)
     pg.draw.rect(window, (0, 0, 0), healthRect)
-    pg.draw.rect(window, (255 * current_health, 255 * (1 - current_health), 0), current_health_rect)
+    pg.draw.rect(
+        window,
+        (255 * current_health, 255 * (1 - current_health), 0),
+        current_health_rect,
+    )
 
-
-    # displaying inventory
+    # displaying inventory & shifting inventory
+    inventoryX += inventoryShift
     window.blit(assets[inventoryImageName], (inventoryX, inventoryY))
     for slot in slots:
+        slot.rect.x += inventoryShift
         if slot.name is not None:
             window.blit(assets[slot.name], slot.rect)
             blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
+
+    # displaying hotbar
+    window.blit(assets[hotbarImageName], (hotbarX, hotbarY))
+    for slot in hotbarSlots:
+        if slot.name is not None:
+            window.blit(assets[slot.name], slot.rect)
+            blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
+
+    # displaying heldItem
+    if heldItem.name is not None:
+        heldItem.rect.center = mouseX, mouseY
+        window.blit(assets[heldItem.name], heldItem.rect)
+        blit_text(window, heldItem.count, heldItem.rect.topleft, (255, 255, 255), 20)
 
     pg.display.update()
 

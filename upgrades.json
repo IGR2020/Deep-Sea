@@ -1,3 +1,4 @@
 [
-    [{"item": "wood", "count": 1}]
-]
+    {"Type": "Depth", "Change": 500, "Cost": [{"item": "wood", "count": 1}]},
+    {"Type": "Health", "Change": 200, "Cost": [{"item": "stone", "count": 3}]}
+] 

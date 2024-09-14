@@ -28,12 +28,14 @@ object_image_names = load_assets("assets/Objects")
 assets.update(object_image_names)
 object_image_names = list(object_image_names.keys())
 assets.update(load_assets("assets/items", scale=3))
+assets["Bubble"] = pg.transform.scale_by(assets["Bubble"], 2)
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
 backgroundMusic.set_volume(0.7)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
+
 
 # defines location of font for Text object
 fontLocation = "assets/GUI/"
@@ -45,23 +47,49 @@ upgrades = loadJson("upgrades.json")
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"
-inventoryScale = 3
-assets[inventoryImageName] = pg.transform.scale_by(assets[inventoryImageName], inventoryScale) 
+guiScale = 3
+assets[inventoryImageName] = pg.transform.scale_by(assets[inventoryImageName], guiScale) 
 
-inventoryX = window_width - assets[inventoryImageName].get_width()
+inventoryWidth = assets[inventoryImageName].get_width()
+inventoryX = window_width - inventoryWidth
 inventoryY = 0
 slotRelX, slotRelY = coordinates[inventoryImageName]["Initial"]
-slotRelX *= inventoryScale
-slotRelY *= inventoryScale
+slotRelX *= guiScale
+slotRelY *= guiScale
 slots = []
 slotWidth, slotHeight = coordinates[inventoryImageName]["Size"]
-slotWidth *= inventoryScale
-slotHeight *= inventoryScale
+slotWidth *= guiScale
+slotHeight *= guiScale
 for x in range(coordinates[inventoryImageName]["X range"]):
     for y in range(coordinates[inventoryImageName]["Y range"]):
         slots.append(
             Slot(inventoryX + slotRelX, inventoryY + slotRelY, slotWidth, slotHeight, None, 0)
         )
-        slotRelY += slotHeight + coordinates[inventoryImageName]["Continuous"][1] * inventoryScale
-    slotRelX += slotWidth + coordinates[inventoryImageName]["Continuous"][0] * inventoryScale
-    slotRelY = coordinates[inventoryImageName]["Initial"][1] * inventoryScale
+        slotRelY += slotHeight + coordinates[inventoryImageName]["Continuous"][1] * guiScale
+    slotRelX += slotWidth + coordinates[inventoryImageName]["Continuous"][0] * guiScale
+    slotRelY = coordinates[inventoryImageName]["Initial"][1] * guiScale
+
+hotbarImageName = "Brown Hotbar"
+assets[hotbarImageName] = pg.transform.scale_by(assets[hotbarImageName], guiScale) 
+
+hotbarWidth = assets[hotbarImageName].get_width()
+hotbarHeight = assets[hotbarImageName].get_height()
+hotbarX = (window_width - hotbarWidth)//2
+hotbarY = window_height - hotbarHeight*1.1
+slotRelX, slotRelY = coordinates[hotbarImageName]["Initial"]
+slotRelX *= guiScale
+slotRelY *= guiScale
+hotbarSlots = []
+slotWidth, slotHeight = coordinates[hotbarImageName]["Size"]
+slotWidth *= guiScale
+slotHeight *= guiScale
+for x in range(coordinates[hotbarImageName]["X range"]):
+    for y in range(coordinates[hotbarImageName]["Y range"]):
+        hotbarSlots.append(
+            Slot(hotbarX + slotRelX, hotbarY + slotRelY, slotWidth, slotHeight, None, 0)
+        )
+        slotRelY += slotHeight + coordinates[hotbarImageName]["Continuous"][1] * guiScale
+    slotRelX += slotWidth + coordinates[hotbarImageName]["Continuous"][0] * guiScale
+    slotRelY = coordinates[hotbarImageName]["Initial"][1] * guiScale
+
+heldItem = Slot(0, 0, 15, 15, None, 0)
