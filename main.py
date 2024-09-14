@@ -174,6 +174,11 @@ current_health_rect = pg.Rect(4, 4 + healthText.rect.bottom, 92, 17)
 inventoryView = True
 inventoryShift = 0
 
+upgradeFound = False
+upgradeID = None
+nextItem = False
+upgradeImageFloat = -1
+
 backgroundMusic.play(-1)
 
 while run:
@@ -207,9 +212,35 @@ while run:
                         else:
                             heldItem.name, slot.name = slot.name, heldItem.name
                             heldItem.count, slot.count = slot.count, heldItem.count
+                continue
+
+            # checking for upgrading
+            if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
+                CorrectSound.play()
+
+                upgrade = upgrades[upgradeID]
+                for cost in upgrade["Cost"]:
+                    for slot in slots:
+                        if cost["Name"] == slot.name and cost["Count"] <= slot.count:
+                            slot.count -= cost["Count"]
+                            if slot.count < 1:
+                                slot.name = None
+                                slot.count = 0
+                            break
+                
+                # upgrading the ship on basis of type
+                if upgrade["Type"] == "Depth":
+                    ship.pressure_limit += upgrade["Change"]
+                elif upgrade["Type"] == "Health":
+                    ship.max_health += upgrade["Change"]
+                    ship.health += upgrade["Change"]
+
+                upgrades.remove(upgrade)
+                upgradeFound = False
+                upgradeID = None
 
     # extracting mouse position
-    mouseX, mouseY = pg.mouse.get_pos()  
+    mouseX, mouseY = pg.mouse.get_pos()
 
     if randint(0, fps * 10) == 0:
         objects.append(
@@ -238,6 +269,7 @@ while run:
                             slot.name = drop
                             slot.count += randint(*itemsData[obj.name]["Count"])
                             break
+
                 objects.remove(obj)
                 break
             obj.health -= abs(ship.vel)
@@ -261,12 +293,27 @@ while run:
     if ship.rect.y - y_offset > window_height - scroll_area:
         y_offset += round(abs(ship.vrt_vel)) + 1
 
+    # checking for available upgrades 
+    for i, upgrade in enumerate(upgrades):
+        for cost in upgrade["Cost"]:
+            nextItem = False
+            for slot in slots:
+                if cost["Name"] == slot.name and cost["Count"] <= slot.count:
+                    nextItem = True
+                    break
+            if nextItem:
+                continue
+            break
+        else:
+            upgradeFound = True
+            upgradeID = i
+
     # checking for kill events
     if ship.rect.y > ship.pressure_limit:
         kill("High pressure.")
 
     if ship.health < 1:
-        kill("Ship damaged too much")
+        kill("Ship damaged too much.")
 
     # setting inventory shift
     if inventoryView and inventoryX > window_width - inventoryWidth:
@@ -277,8 +324,12 @@ while run:
         inventoryShift = 0
 
     # creating bubbles & removing bubbles
-    if (ship.disabled and randint(0, 10) == 0) or (abs(ship.vel) < 1  and randint(0, 30) == 0):
-        bubbles.append(Particle("Bubble", ship.rect.x + randint(-30, 30), ship.rect.y, -1.5, 0))
+    if (ship.disabled and randint(0, 10) == 0) or (
+        abs(ship.vel) < 1 and randint(0, 30) == 0
+    ):
+        bubbles.append(
+            Particle("Bubble", ship.rect.x + randint(-30, 30), ship.rect.y, -1.5, 0)
+        )
     for bubble in bubbles:
         if bubble.outOfView:
             bubbles.remove(bubble)
@@ -291,7 +342,7 @@ while run:
     # rendering bubbles
     for bubble in bubbles:
         bubble.display(window, x_offset, y_offset)
-    
+
     ship.display(window, x_offset, y_offset)
 
     # displaying pressure
@@ -312,7 +363,7 @@ while run:
     pg.draw.rect(window, (0, 0, 0), healthRect)
     pg.draw.rect(
         window,
-        (255 * current_health, 255 * (1 - current_health), 0),
+        (255 * (1 - current_health), 255 * current_health, 0),
         current_health_rect,
     )
 
@@ -337,6 +388,16 @@ while run:
         heldItem.rect.center = mouseX, mouseY
         window.blit(assets[heldItem.name], heldItem.rect)
         blit_text(window, heldItem.count, heldItem.rect.topleft, (255, 255, 255), 20)
+
+    # upgrade displaying
+    if upgradeFound:
+        window.blit(assets["Upgrade"], upgradeRect)
+        upgradeRect.y += upgradeImageFloat
+
+        if upgradeRect.y > window_height - 58:
+            upgradeImageFloat = -1
+        if upgradeRect.y < window_height - 78:
+            upgradeImageFloat = 1
 
     pg.display.update()
 

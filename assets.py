@@ -35,6 +35,7 @@ backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
 backgroundMusic.set_volume(0.7)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
+CorrectSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
 
 
 # defines location of font for Text object
@@ -93,3 +94,5 @@ for x in range(coordinates[hotbarImageName]["X range"]):
     slotRelY = coordinates[hotbarImageName]["Initial"][1] * guiScale
 
 heldItem = Slot(0, 0, 15, 15, None, 0)
+
+upgradeRect = assets["Upgrade"].get_rect(topleft=(20, window_height-68))
