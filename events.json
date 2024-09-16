@@ -1,0 +1,3 @@
+{
+    "Asteroid": {"Duration": 30, "Type": "Rain", "Rain": "Drop", "Drop": "Asteroid", "Summon": "Asteroid", "Speed": 5}
+}

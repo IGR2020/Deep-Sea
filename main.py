@@ -95,8 +95,9 @@ class Object(pg.sprite.Sprite):
     angle = 0
     sink_speed = 0.1
     sink_vel = 0
+    max_sink_speed = 1
 
-    def __init__(self, x, y, name) -> None:
+    def __init__(self, x, y, name, type="Object") -> None:
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
         self.name = name
         self.scale = randint(10, 40) * 0.1
@@ -107,18 +108,22 @@ class Object(pg.sprite.Sprite):
         self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.mask = pg.mask.from_surface(self.rotatedImage)
         self.health = itemsData[self.name]["Health"]
+        self.type = type
 
     def display(self, window, x_offset, y_offset):
         window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
 
     def script(self):
+
         self.sink_vel += self.sink_speed
-        self.sink_vel = min(self.sink_vel, 1)
+        self.sink_vel = min(self.sink_vel, self.max_sink_speed)
+
         self.rect.y += self.y_vel
         self.rect.y += self.sink_vel
         self.rect.x += self.x_vel
         self.x_vel *= 0.9
         self.y_vel *= 0.9
+
         self.angle += self.rotation
         self.reload()
 
@@ -152,6 +157,29 @@ class Particle:
             self.outOfView = True
 
 
+class Rain(Object):
+    isInWater = False
+
+    def __init__(self, x, y, name, x_vel, y_vel, drop) -> None:
+        """Drop tells the game to drop something if the rain moves into the water"""
+        super().__init__(x, y, name, "Rain")
+        self.x_vel = x_vel
+        self.y_vel = y_vel
+        self.drop = drop
+
+    def script(self):
+        if self.isInWater:
+            print("umm")
+            return
+        self.rect.x += self.x_vel
+        self.rect.y += self.y_vel
+        if self.rect.y > sky_start:
+            self.isInWater = True
+
+        self.angle += self.rotation
+        self.reload()
+
+
 ship = Ship(100, 100, "Ship")
 objects = [Object(200, 100, "Plank"), Object(300, 200, "Plank")]
 
@@ -178,6 +206,12 @@ upgradeFound = False
 upgradeID = None
 nextItem = False
 upgradeImageFloat = -1
+
+eventOccurring = False
+timeSinceLastEvent = 0
+eventGap = 60  # minimum time between events (time in seconds)
+eventChance = 1  # chance of event occurring (time in seconds)
+eventType = None  # assign the json event object in event.json durring event
 
 backgroundMusic.play(-1)
 
@@ -212,7 +246,6 @@ while run:
                         else:
                             heldItem.name, slot.name = slot.name, heldItem.name
                             heldItem.count, slot.count = slot.count, heldItem.count
-                continue
 
             # checking for upgrading
             if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
@@ -220,14 +253,14 @@ while run:
 
                 upgrade = upgrades[upgradeID]
                 for cost in upgrade["Cost"]:
-                    for slot in slots:
+                    for slot in (*slots, *hotbarSlots):
                         if cost["Name"] == slot.name and cost["Count"] <= slot.count:
                             slot.count -= cost["Count"]
                             if slot.count < 1:
                                 slot.name = None
                                 slot.count = 0
                             break
-                
+
                 # upgrading the ship on basis of type
                 if upgrade["Type"] == "Depth":
                     ship.pressure_limit += upgrade["Change"]
@@ -257,6 +290,12 @@ while run:
     ship.script()
     for obj in objects:
         obj.script()
+        if obj.type == "Rain":
+            if obj.isInWater:
+                if obj.drop:
+                    objects.append(Object(obj.rect.x, obj.rect.y, obj.name))
+                objects.remove(obj)
+            continue
         if pg.sprite.collide_mask(ship, obj):
             breakSound.play()
             if obj.health < 1:
@@ -293,11 +332,11 @@ while run:
     if ship.rect.y - y_offset > window_height - scroll_area:
         y_offset += round(abs(ship.vrt_vel)) + 1
 
-    # checking for available upgrades 
+    # checking for available upgrades
     for i, upgrade in enumerate(upgrades):
         for cost in upgrade["Cost"]:
             nextItem = False
-            for slot in slots:
+            for slot in (*slots, *hotbarSlots):
                 if cost["Name"] == slot.name and cost["Count"] <= slot.count:
                     nextItem = True
                     break
@@ -307,6 +346,10 @@ while run:
         else:
             upgradeFound = True
             upgradeID = i
+            break
+    else:
+        upgradeFound = False
+        upgradeID = None
 
     # checking for kill events
     if ship.rect.y > ship.pressure_limit:
@@ -333,6 +376,34 @@ while run:
     for bubble in bubbles:
         if bubble.outOfView:
             bubbles.remove(bubble)
+
+    # setting events
+    if (
+        randint(0, round(fps * eventChance)) == 0
+        and time() - timeSinceLastEvent > eventGap
+        and not eventOccurring
+    ):
+        eventOccurring = True
+        timeSinceLastEvent = time()
+        eventType = events[choice(list(events.keys()))]
+
+    # event script
+    if eventOccurring:
+        if eventType["Type"] == "Rain":
+            if randint(0, round(fps * eventType["Speed"])) == 0:
+                objects.append(
+                    Rain(
+                        randint(
+                            ship.rect.centerx - window_width // 2,
+                            ship.rect.centerx + window_width // 2,
+                        ),
+                        sky_start - window_height,
+                        eventType["Summon"],
+                        randint(-5, 5),
+                        randint(5, 15),
+                        eventType["Rain"] == "Drop",
+                    )
+                )
 
     window.fill((0, 0, 139))
     window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))

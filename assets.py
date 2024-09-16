@@ -29,6 +29,7 @@ assets.update(object_image_names)
 object_image_names = list(object_image_names.keys())
 assets.update(load_assets("assets/items", scale=3))
 assets["Bubble"] = pg.transform.scale_by(assets["Bubble"], 2)
+assets.update(load_assets("assets/Events"))
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
@@ -45,6 +46,7 @@ fontLocation = "assets/GUI/"
 coordinates = loadJson("coordinates.json")
 itemsData = loadJson("items.json")
 upgrades = loadJson("upgrades.json")
+events = loadJson("events.json")
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"
