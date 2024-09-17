@@ -15,4 +15,7 @@ of this has to be done while worrying about the natural predators, fuel and ship
 + Sound Effects.
 + Bubbles & Inventory Management.
 + Iron Ore & Upgrades!
+
+## Beta 2
 + Events & Asteroid Rain!
++ Fixed Asteroid Event & Custom Mouse Cursor.
