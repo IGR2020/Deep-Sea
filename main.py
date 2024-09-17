@@ -132,6 +132,16 @@ class Object(pg.sprite.Sprite):
         self.rect = self.rotatedImage.get_rect(center=self.rect.center)
         self.mask = pg.mask.from_surface(self.rotatedImage)
 
+    @classmethod
+    def loadFromRain(self, rain):
+        self = self(rain.rect.x, rain.rect.y, rain.name)
+        self.x_vel, self.y_vel = rain.x_vel, rain.y_vel
+        self.scale, self.angle, self.rotation = rain.scale, rain.angle, rain.rotation
+        self.scaledImage = pg.transform.scale_by(assets[self.name], self.scale)
+        self.reload()
+        self.rect.topleft = rain.rect.x, rain.rect.y
+        return self
+
 
 class Particle:
     outOfView = False
@@ -153,6 +163,7 @@ class Particle:
             or self.x - x_offset > window_width * 2
             or self.y - y_offset < -window_height
             or self.y - y_offset > window_height * 2
+            or (self.name == "Bubble" and self.y < sky_start)
         ):
             self.outOfView = True
 
@@ -210,8 +221,10 @@ upgradeImageFloat = -1
 eventOccurring = False
 timeSinceLastEvent = 0
 eventGap = 60  # minimum time between events (time in seconds)
-eventChance = 1  # chance of event occurring (time in seconds)
+eventChance = 60  # chance of event occurring (time in seconds)
 eventType = None  # assign the json event object in event.json durring event
+
+freeCam = False
 
 backgroundMusic.play(-1)
 
@@ -223,11 +236,21 @@ while run:
             run = False
 
         if event.type == pg.KEYDOWN:
+
             if event.key == pg.K_e:
                 inventoryView = not inventoryView
 
+            if event.key == pg.K_f:
+                if freeCam:
+                    x_offset, y_offset = (
+                        ship.rect.x - window_width / 2,
+                        ship.rect.y - window_height / 2,
+                    )
+                freeCam = not freeCam
+
         if event.type == pg.MOUSEBUTTONUP:
             if inventoryView:
+                # inventory management
                 for slot in slots:
                     if slot.rect.collidepoint(mouseX, mouseY):
                         if slot.name == heldItem.name and heldItem.name is not None:
@@ -246,6 +269,7 @@ while run:
                         else:
                             heldItem.name, slot.name = slot.name, heldItem.name
                             heldItem.count, slot.count = slot.count, heldItem.count
+                heldItem.reloadRect()
 
             # checking for upgrading
             if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
@@ -293,7 +317,7 @@ while run:
         if obj.type == "Rain":
             if obj.isInWater:
                 if obj.drop:
-                    objects.append(Object(obj.rect.x, obj.rect.y, obj.name))
+                    objects.append(Object.loadFromRain(obj))
                 objects.remove(obj)
             continue
         if pg.sprite.collide_mask(ship, obj):
@@ -311,8 +335,14 @@ while run:
 
                 objects.remove(obj)
                 break
+
+            # elastic knockback
             obj.health -= abs(ship.vel)
             ship.health -= itemsData[obj.name]["Damage"]
+            if ship.vel > 0:
+                ship.vel += 1
+            else:
+                ship.vel -= 1
             ship.vel = -ship.vel
             ship.disabled = True
             ship.time_since_disabled = time()
@@ -320,17 +350,24 @@ while run:
             obj.y_vel = -ship.vrt_vel
 
     # scrolling of the game window
-    if ship.rect.x - x_offset < scroll_area:
-        x_offset -= round(abs(ship.hrt_vel))
+    mouseRelX, mouseRelY = pg.mouse.get_rel()
+    mouseDown = pg.mouse.get_pressed()
+    if freeCam:
+        if True in mouseDown: 
+            x_offset -= mouseRelX
+            y_offset -= mouseRelY
+    else:
+        if ship.rect.x - x_offset < scroll_area:
+            x_offset -= round(abs(ship.hrt_vel))
 
-    if ship.rect.x - x_offset > window_width - scroll_area:
-        x_offset += round(abs(ship.hrt_vel))
+        if ship.rect.x - x_offset > window_width - scroll_area:
+            x_offset += round(abs(ship.hrt_vel))
 
-    if ship.rect.y - y_offset < scroll_area:
-        y_offset -= round(abs(ship.vrt_vel))
+        if ship.rect.y - y_offset < scroll_area:
+            y_offset -= round(abs(ship.vrt_vel))
 
-    if ship.rect.y - y_offset > window_height - scroll_area:
-        y_offset += round(abs(ship.vrt_vel)) + 1
+        if ship.rect.y - y_offset > window_height - scroll_area:
+            y_offset += round(abs(ship.vrt_vel)) + 1
 
     # checking for available upgrades
     for i, upgrade in enumerate(upgrades):
@@ -385,22 +422,42 @@ while run:
     ):
         eventOccurring = True
         timeSinceLastEvent = time()
-        eventType = events[choice(list(events.keys()))]
+        eventType = choice(events)
+        if eventType["Type"] == "Rain":
+            try:
+                eventType["Direction"]
+            except:
+                eventType["Direction"] = randint(-5, 5)
+            try:
+                eventType["Fall Speed"]
+            except:
+                eventType["Fall Speed"] = randint(5, 15)
+
+            # note summon range start is added to ship x and summon range end is subtracted to ship x
+            if eventType["Direction"] > 0:
+                eventType["Summon Range Start"] = window_width // 2
+                eventType["Summon Range End"] = 0
+            elif eventType["Direction"] < 0:
+                eventType["Summon Range Start"] = 0
+                eventType["Summon Range End"] = window_width // 2
+            else:
+                eventType["Summon Range Start"] = window_width // 2
+                eventType["Summon Range End"] = window_width // 2
 
     # event script
     if eventOccurring:
         if eventType["Type"] == "Rain":
-            if randint(0, round(fps * eventType["Speed"])) == 0:
+            if randint(0, round(fps * eventType["Summon Speed"])) == 0:
                 objects.append(
                     Rain(
                         randint(
-                            ship.rect.centerx - window_width // 2,
-                            ship.rect.centerx + window_width // 2,
+                            ship.rect.centerx - eventType["Summon Range Start"],
+                            ship.rect.centerx + eventType["Summon Range End"],
                         ),
                         sky_start - window_height,
                         eventType["Summon"],
-                        randint(-5, 5),
-                        randint(5, 15),
+                        eventType["Direction"],
+                        eventType["Fall Speed"],
                         eventType["Rain"] == "Drop",
                     )
                 )

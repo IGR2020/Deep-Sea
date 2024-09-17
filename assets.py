@@ -1,11 +1,18 @@
 import pygame as pg
 from functions import load_assets, loadJson
 
+
 class Slot:
     def __init__(self, x, y, width, height, name, count) -> None:
         self.rect = pg.Rect(x, y, width, height)
         self.name = name
         self.count = count
+
+    def reloadRect(self):
+        if self.name is None:
+            return
+        self.rect = assets[self.name].get_rect(topleft=(x, y))
+
 
 pg.font.init()
 pg.mixer.init()
@@ -51,7 +58,7 @@ events = loadJson("events.json")
 # creation of inventory slots
 inventoryImageName = "Brown Slots"
 guiScale = 3
-assets[inventoryImageName] = pg.transform.scale_by(assets[inventoryImageName], guiScale) 
+assets[inventoryImageName] = pg.transform.scale_by(assets[inventoryImageName], guiScale)
 
 inventoryWidth = assets[inventoryImageName].get_width()
 inventoryX = window_width - inventoryWidth
@@ -66,19 +73,28 @@ slotHeight *= guiScale
 for x in range(coordinates[inventoryImageName]["X range"]):
     for y in range(coordinates[inventoryImageName]["Y range"]):
         slots.append(
-            Slot(inventoryX + slotRelX, inventoryY + slotRelY, slotWidth, slotHeight, None, 0)
+            Slot(
+                inventoryX + slotRelX,
+                inventoryY + slotRelY,
+                slotWidth,
+                slotHeight,
+                None,
+                0,
+            )
         )
-        slotRelY += slotHeight + coordinates[inventoryImageName]["Continuous"][1] * guiScale
+        slotRelY += (
+            slotHeight + coordinates[inventoryImageName]["Continuous"][1] * guiScale
+        )
     slotRelX += slotWidth + coordinates[inventoryImageName]["Continuous"][0] * guiScale
     slotRelY = coordinates[inventoryImageName]["Initial"][1] * guiScale
 
 hotbarImageName = "Brown Hotbar"
-assets[hotbarImageName] = pg.transform.scale_by(assets[hotbarImageName], guiScale) 
+assets[hotbarImageName] = pg.transform.scale_by(assets[hotbarImageName], guiScale)
 
 hotbarWidth = assets[hotbarImageName].get_width()
 hotbarHeight = assets[hotbarImageName].get_height()
-hotbarX = (window_width - hotbarWidth)//2
-hotbarY = window_height - hotbarHeight*1.1
+hotbarX = (window_width - hotbarWidth) // 2
+hotbarY = window_height - hotbarHeight * 1.1
 slotRelX, slotRelY = coordinates[hotbarImageName]["Initial"]
 slotRelX *= guiScale
 slotRelY *= guiScale
@@ -91,10 +107,15 @@ for x in range(coordinates[hotbarImageName]["X range"]):
         hotbarSlots.append(
             Slot(hotbarX + slotRelX, hotbarY + slotRelY, slotWidth, slotHeight, None, 0)
         )
-        slotRelY += slotHeight + coordinates[hotbarImageName]["Continuous"][1] * guiScale
+        slotRelY += (
+            slotHeight + coordinates[hotbarImageName]["Continuous"][1] * guiScale
+        )
     slotRelX += slotWidth + coordinates[hotbarImageName]["Continuous"][0] * guiScale
     slotRelY = coordinates[hotbarImageName]["Initial"][1] * guiScale
 
 heldItem = Slot(0, 0, 15, 15, None, 0)
 
-upgradeRect = assets["Upgrade"].get_rect(topleft=(20, window_height-68))
+upgradeRect = assets["Upgrade"].get_rect(topleft=(20, window_height - 68))
+
+# creating custom mouse
+pg.mouse.set_cursor((9, 9), assets["Mouse"])
