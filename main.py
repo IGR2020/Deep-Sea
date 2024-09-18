@@ -218,7 +218,7 @@ class Item(Object):
         super().script()
         
         if self.rect.y < sky_start:
-            self.rect.y += 3
+            self.rect.y += 7
 
 
 
