@@ -50,10 +50,12 @@ CorrectSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
 fontLocation = "assets/GUI/"
 
 # loading all json data
-coordinates = loadJson("coordinates.json")
-itemsData = loadJson("items.json")
-upgrades = loadJson("upgrades.json")
-events = loadJson("events.json")
+coordinates = loadJson("data/coordinates.json")
+itemsData = loadJson("data/items.json")
+upgrades = loadJson("data/upgrades.json")
+events = loadJson("data/events.json")
+eventsCopy = events # a copy of the events to reset it after an event is over
+smelts = loadJson("data/smelts.json")
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"

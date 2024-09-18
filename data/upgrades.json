@@ -1,0 +1,5 @@
+[
+    {"Type": "Depth", "Change": 500, "Cost": [{"Name": "wood", "Count": 3}]},
+    {"Type": "Health", "Change": 200, "Cost": [{"Name": "stone", "Count": 3}]},
+    {"Type": "Health", "Change": 700, "Cost": [{"Name": "iron ingot", "Count": 4}]}
+] 

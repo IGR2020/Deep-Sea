@@ -107,7 +107,8 @@ class Object(pg.sprite.Sprite):
         self.scaledImage = pg.transform.scale_by(assets[self.name], self.scale)
         self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.mask = pg.mask.from_surface(self.rotatedImage)
-        self.health = itemsData[self.name]["Health"]
+        if type == "Object":
+            self.health = itemsData[self.name]["Health"]
         self.type = type
 
     def display(self, window, x_offset, y_offset):
@@ -128,6 +129,12 @@ class Object(pg.sprite.Sprite):
         self.reload()
 
     def reload(self):
+        self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
+        self.rect = self.rotatedImage.get_rect(center=self.rect.center)
+        self.mask = pg.mask.from_surface(self.rotatedImage)
+
+    def totalReload(self):
+        self.scaledImage = pg.transform.scale_by(assets[self.name], self.scale)
         self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.rect = self.rotatedImage.get_rect(center=self.rect.center)
         self.mask = pg.mask.from_surface(self.rotatedImage)
@@ -180,7 +187,6 @@ class Rain(Object):
 
     def script(self):
         if self.isInWater:
-            print("umm")
             return
         self.rect.x += self.x_vel
         self.rect.y += self.y_vel
@@ -189,6 +195,31 @@ class Rain(Object):
 
         self.angle += self.rotation
         self.reload()
+
+
+class Item(Object):
+    def __init__(self, x, y, name, count) -> None:
+        super().__init__(x, y, name, "Item")
+        self.count = count
+        self.scale = 1
+        self.totalReload()
+
+    def script(self):
+        if eventType is not None and self.rect.y < sky_start:
+            if eventType["Type"] == "Rain":
+                if eventType["Rain"] == "Effect":
+                    if eventType["Effect"] == "Smelt":
+                        for smelt in smelts:
+                            if smelt["Name"] == self.name:
+                                self.name = smelt["Smelt"]
+                                self.totalReload()
+                                break
+
+        super().script()
+        
+        if self.rect.y < sky_start:
+            self.rect.y += 3
+
 
 
 ship = Ship(100, 100, "Ship")
@@ -221,10 +252,13 @@ upgradeImageFloat = -1
 eventOccurring = False
 timeSinceLastEvent = 0
 eventGap = 60  # minimum time between events (time in seconds)
-eventChance = 60  # chance of event occurring (time in seconds)
+eventChance = 60 # chance of event occurring (time in seconds)
 eventType = None  # assign the json event object in event.json durring event
 
 freeCam = False
+
+slotFound = False
+
 
 backgroundMusic.play(-1)
 
@@ -251,6 +285,7 @@ while run:
         if event.type == pg.MOUSEBUTTONUP:
             if inventoryView:
                 # inventory management
+                slotFound = False
                 for slot in slots:
                     if slot.rect.collidepoint(mouseX, mouseY):
                         if slot.name == heldItem.name and heldItem.name is not None:
@@ -260,6 +295,7 @@ while run:
                         else:
                             heldItem.name, slot.name = slot.name, heldItem.name
                             heldItem.count, slot.count = slot.count, heldItem.count
+                        slotFound = True
                 for slot in hotbarSlots:
                     if slot.rect.collidepoint(mouseX, mouseY):
                         if slot.name == heldItem.name and heldItem.name is not None:
@@ -269,7 +305,21 @@ while run:
                         else:
                             heldItem.name, slot.name = slot.name, heldItem.name
                             heldItem.count, slot.count = slot.count, heldItem.count
+                        slotFound = True
                 heldItem.reloadRect()
+
+                if not slotFound and heldItem.name is not None:
+                    objects.append(
+                        Item(
+                            mouseX + x_offset,
+                            mouseY + y_offset,
+                            heldItem.name,
+                            heldItem.count,
+                        )
+                    )
+                    heldItem.name = None
+                    heldItem.count = 0
+                slotFound = False
 
             # checking for upgrading
             if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
@@ -321,6 +371,17 @@ while run:
                 objects.remove(obj)
             continue
         if pg.sprite.collide_mask(ship, obj):
+            if obj.type == "Item":
+                for slot in slots:
+                    if slot.name == obj.name:
+                        slot.count += obj.count
+                        break
+                    if slot.name is None:
+                        slot.name = obj.name
+                        slot.count = obj.count
+                        break
+                objects.remove(obj)
+                continue
             breakSound.play()
             if obj.health < 1:
                 for drop in itemsData[obj.name]["Drops"]:
@@ -353,7 +414,7 @@ while run:
     mouseRelX, mouseRelY = pg.mouse.get_rel()
     mouseDown = pg.mouse.get_pressed()
     if freeCam:
-        if True in mouseDown: 
+        if True in mouseDown:
             x_offset -= mouseRelX
             y_offset -= mouseRelY
     else:
@@ -419,7 +480,8 @@ while run:
         randint(0, round(fps * eventChance)) == 0
         and time() - timeSinceLastEvent > eventGap
         and not eventOccurring
-    ):
+        ):
+        events = eventsCopy
         eventOccurring = True
         timeSinceLastEvent = time()
         eventType = choice(events)
@@ -445,7 +507,7 @@ while run:
                 eventType["Summon Range End"] = window_width // 2
 
     # event script
-    if eventOccurring:
+    if eventOccurring and eventType is not None:
         if eventType["Type"] == "Rain":
             if randint(0, round(fps * eventType["Summon Speed"])) == 0:
                 objects.append(
@@ -461,6 +523,12 @@ while run:
                         eventType["Rain"] == "Drop",
                     )
                 )
+
+    # Stopping event
+    if eventOccurring and eventType is not None:
+        if time() - timeSinceLastEvent > eventType["Duration"]:
+            eventOccurring = False
+            eventType = None
 
     window.fill((0, 0, 139))
     window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
