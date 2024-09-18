@@ -20,4 +20,5 @@ of this has to be done while worrying about the natural predators, fuel and ship
 + Events & Asteroid Rain!
 + Fixed Asteroid Event & Custom Mouse Cursor.
 + Items as objects
-+ Lava Rain & Item Smelting. (Place a item that is smeltable durring lava rain in the sky)
++ Lava Rain & Item Smelting! (Place a item that is smeltable durring lava rain in the sky)
++ More Upgrades.
