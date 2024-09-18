@@ -2,5 +2,9 @@
     {
         "Name": "iron ore",
         "Smelt": "iron ingot"
+    },
+    {
+        "Name": "gold ore",
+        "Smelt": "gold ingot"
     }
 ]
