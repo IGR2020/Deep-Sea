@@ -25,12 +25,19 @@ class Ship:
     pressure_limit = 2_000
     health = 200
     max_health = health
+    slots = []
+    hotBarSlots = []
+    heldItem = []
 
-    def __init__(self, x, y, name):
+    def __init__(self, x, y, name, slots, hotBarSlots, heldItem):
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
         self.name = name
         self.rotatedImage = pg.transform.rotate(assets[name], self.angle)
         self.mask = pg.mask.from_surface(self.rotatedImage)
+
+        self.slots = slots
+        self.hotBarSlots = hotBarSlots
+        self.heldItem = heldItem
 
     def display(self, window, x_offset, y_offset):
         window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
@@ -216,14 +223,14 @@ class Item(Object):
                                 break
 
         super().script()
-        
+
         if self.rect.y < sky_start:
             self.rect.y += 7
 
 
-
-ship = Ship(100, 100, "Ship")
-objects = [Object(200, 100, "Plank"), Object(300, 200, "Plank")]
+ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
+name = "IGR2020"
+objects = [Object(300, 200, "Plank")]
 
 bubbles = []
 
@@ -252,17 +259,17 @@ upgradeImageFloat = -1
 eventOccurring = False
 timeSinceLastEvent = 0
 eventGap = 60  # minimum time between events (time in seconds)
-eventChance = 60 # chance of event occurring (time in seconds)
+eventChance = 60  # chance of event occurring (time in seconds)
 eventType = None  # assign the json event object in event.json durring event
 
 freeCam = False
 
 slotFound = False
 
-
 backgroundMusic.play(-1)
 
 while run:
+
     clock.tick(fps)
 
     for event in pg.event.get():
@@ -286,39 +293,57 @@ while run:
             if inventoryView:
                 # inventory management
                 slotFound = False
-                for slot in slots:
+                for slot in ships[name].slots:
                     if slot.rect.collidepoint(mouseX, mouseY):
-                        if slot.name == heldItem.name and heldItem.name is not None:
-                            slot.count += heldItem.count
-                            heldItem.name = None
-                            heldItem.count = None
+                        if (
+                            slot.name == ships[name].heldItem.name
+                            and ships[name].heldItem.name is not None
+                        ):
+                            slot.count += ships[name].heldItem.count
+                            ships[name].heldItem.name = None
+                            ships[name].heldItem.count = None
                         else:
-                            heldItem.name, slot.name = slot.name, heldItem.name
-                            heldItem.count, slot.count = slot.count, heldItem.count
+                            ships[name].heldItem.name, slot.name = (
+                                slot.name,
+                                ships[name].heldItem.name,
+                            )
+                            ships[name].heldItem.count, slot.count = (
+                                slot.count,
+                                ships[name].heldItem.count,
+                            )
                         slotFound = True
-                for slot in hotbarSlots:
+                for slot in ships[name].hotBarSlots:
                     if slot.rect.collidepoint(mouseX, mouseY):
-                        if slot.name == heldItem.name and heldItem.name is not None:
-                            slot.count += heldItem.count
-                            heldItem.name = None
-                            heldItem.count = None
+                        if (
+                            slot.name == ships[name].heldItem.name
+                            and ships[name].heldItem.name is not None
+                        ):
+                            slot.count += ships[name].heldItem.count
+                            ships[name].heldItem.name = None
+                            ships[name].heldItem.count = None
                         else:
-                            heldItem.name, slot.name = slot.name, heldItem.name
-                            heldItem.count, slot.count = slot.count, heldItem.count
+                            ships[name].heldItem.name, slot.name = (
+                                slot.name,
+                                ships[name].heldItem.name,
+                            )
+                            ships[name].heldItem.count, slot.count = (
+                                slot.count,
+                                ships[name].heldItem.count,
+                            )
                         slotFound = True
-                heldItem.reloadRect()
+                ships[name].heldItem.reloadRect()
 
-                if not slotFound and heldItem.name is not None:
+                if not slotFound and ships[name].heldItem.name is not None:
                     objects.append(
                         Item(
                             mouseX + x_offset,
                             mouseY + y_offset,
-                            heldItem.name,
-                            heldItem.count,
+                            ships[name].heldItem.name,
+                            ships[name].heldItem.count,
                         )
                     )
-                    heldItem.name = None
-                    heldItem.count = 0
+                    ships[name].heldItem.name = None
+                    ships[name].heldItem.count = 0
                 slotFound = False
 
             # checking for upgrading
@@ -327,7 +352,7 @@ while run:
 
                 upgrade = upgrades[upgradeID]
                 for cost in upgrade["Cost"]:
-                    for slot in (*slots, *hotbarSlots):
+                    for slot in (*ships[name].slots, *ships[name].hotBarSlots):
                         if cost["Name"] == slot.name and cost["Count"] <= slot.count:
                             slot.count -= cost["Count"]
                             if slot.count < 1:
@@ -337,10 +362,10 @@ while run:
 
                 # upgrading the ship on basis of type
                 if upgrade["Type"] == "Depth":
-                    ship.pressure_limit += upgrade["Change"]
+                    ships[name].pressure_limit += upgrade["Change"]
                 elif upgrade["Type"] == "Health":
-                    ship.max_health += upgrade["Change"]
-                    ship.health += upgrade["Change"]
+                    ships[name].max_health += upgrade["Change"]
+                    ships[name].health += upgrade["Change"]
 
                 upgrades.remove(upgrade)
                 upgradeFound = False
@@ -353,62 +378,62 @@ while run:
         objects.append(
             Object(
                 randint(
-                    ship.rect.centerx - window_width // 2,
-                    ship.rect.centerx + window_width // 2,
+                    ships[name].rect.centerx - window_width // 2,
+                    ships[name].rect.centerx + window_width // 2,
                 ),
                 -100,
                 choice(object_image_names),
             )
         )
 
-    ship.script()
-    for obj in objects:
-        obj.script()
-        if obj.type == "Rain":
-            if obj.isInWater:
-                if obj.drop:
-                    objects.append(Object.loadFromRain(obj))
-                objects.remove(obj)
-            continue
-        if pg.sprite.collide_mask(ship, obj):
-            if obj.type == "Item":
-                for slot in slots:
-                    if slot.name == obj.name:
-                        slot.count += obj.count
-                        break
-                    if slot.name is None:
-                        slot.name = obj.name
-                        slot.count = obj.count
-                        break
-                objects.remove(obj)
+    ships[name].script()
+    for ship in ships:
+        for obj in objects:
+            obj.script()
+            if obj.type == "Rain":
+                if obj.isInWater:
+                    if obj.drop:
+                        objects.append(Object.loadFromRain(obj))
+                    objects.remove(obj)
                 continue
-            breakSound.play()
-            if obj.health < 1:
-                for drop in itemsData[obj.name]["Drops"]:
-                    for slot in slots:
-                        if slot.name == drop:
-                            slot.count += randint(*itemsData[obj.name]["Count"])
+            if pg.sprite.collide_mask(ships[ship], obj):
+                if obj.type == "Item":
+                    for slot in ships[ship].slots:
+                        if slot.name == obj.name:
+                            slot.count += obj.count
                             break
                         if slot.name is None:
-                            slot.name = drop
-                            slot.count += randint(*itemsData[obj.name]["Count"])
+                            slot.name = obj.name
+                            slot.count = obj.count
                             break
+                    objects.remove(obj)
+                    continue
+                breakSound.play()
+                if obj.health < 1:
+                    for drop in itemsData[obj.name]["Drops"]:
+                        for slot in ships[ship].slots:
+                            if slot.name == drop:
+                                slot.count += randint(*itemsData[obj.name]["Count"])
+                                break
+                            if slot.name is None:
+                                slot.name = drop
+                                slot.count += randint(*itemsData[obj.name]["Count"])
+                                break
 
-                objects.remove(obj)
-                break
+                    objects.remove(obj)
 
-            # elastic knockback
-            obj.health -= abs(ship.vel)
-            ship.health -= itemsData[obj.name]["Damage"]
-            if ship.vel > 0:
-                ship.vel += 1
-            else:
-                ship.vel -= 1
-            ship.vel = -ship.vel
-            ship.disabled = True
-            ship.time_since_disabled = time()
-            obj.x_vel = -ship.hrt_vel
-            obj.y_vel = -ship.vrt_vel
+                # elastic knockback
+                obj.health -= abs(ships[ship].vel)
+                ships[ship].health -= itemsData[obj.name]["Damage"]
+                if ships[ship].vel > 0:
+                    ships[ship].vel += 1
+                else:
+                    ships[ship].vel -= 1
+                ships[ship].vel = -ships[ship].vel
+                ships[ship].disabled = True
+                ships[ship].time_since_disabled = time()
+                obj.x_vel = -ships[ship].hrt_vel
+                obj.y_vel = -ships[ship].vrt_vel
 
     # scrolling of the game window
     mouseRelX, mouseRelY = pg.mouse.get_rel()
@@ -418,23 +443,23 @@ while run:
             x_offset -= mouseRelX
             y_offset -= mouseRelY
     else:
-        if ship.rect.x - x_offset < scroll_area:
-            x_offset -= round(abs(ship.hrt_vel))
+        if ships[name].rect.x - x_offset < scroll_area:
+            x_offset -= round(abs(ships[name].hrt_vel))
 
-        if ship.rect.x - x_offset > window_width - scroll_area:
-            x_offset += round(abs(ship.hrt_vel))
+        if ships[name].rect.x - x_offset > window_width - scroll_area:
+            x_offset += round(abs(ships[name].hrt_vel))
 
-        if ship.rect.y - y_offset < scroll_area:
-            y_offset -= round(abs(ship.vrt_vel))
+        if ships[name].rect.y - y_offset < scroll_area:
+            y_offset -= round(abs(ships[name].vrt_vel))
 
-        if ship.rect.y - y_offset > window_height - scroll_area:
-            y_offset += round(abs(ship.vrt_vel)) + 1
+        if ships[name].rect.y - y_offset > window_height - scroll_area:
+            y_offset += round(abs(ships[name].vrt_vel)) + 1
 
     # checking for available upgrades
     for i, upgrade in enumerate(upgrades):
         for cost in upgrade["Cost"]:
             nextItem = False
-            for slot in (*slots, *hotbarSlots):
+            for slot in (*ships[name].slots, *ships[name].hotBarSlots):
                 if cost["Name"] == slot.name and cost["Count"] <= slot.count:
                     nextItem = True
                     break
@@ -450,10 +475,10 @@ while run:
         upgradeID = None
 
     # checking for kill events
-    if ship.rect.y > ship.pressure_limit:
+    if ships[name].rect.y > ships[name].pressure_limit:
         kill("High pressure.")
 
-    if ship.health < 1:
+    if ships[name].health < 1:
         kill("Ship damaged too much.")
 
     # setting inventory shift
@@ -465,11 +490,13 @@ while run:
         inventoryShift = 0
 
     # creating bubbles & removing bubbles
-    if (ship.disabled and randint(0, 10) == 0) or (
-        abs(ship.vel) < 1 and randint(0, 30) == 0
+    if (ships[name].disabled and randint(0, 10) == 0) or (
+        abs(ships[name].vel) < 1 and randint(0, 30) == 0
     ):
         bubbles.append(
-            Particle("Bubble", ship.rect.x + randint(-30, 30), ship.rect.y, -1.5, 0)
+            Particle(
+                "Bubble", ships[name].rect.x + randint(-30, 30), ships[name].rect.y, -1.5, 0
+            )
         )
     for bubble in bubbles:
         if bubble.outOfView:
@@ -480,7 +507,7 @@ while run:
         randint(0, round(fps * eventChance)) == 0
         and time() - timeSinceLastEvent > eventGap
         and not eventOccurring
-        ):
+    ):
         events = eventsCopy
         eventOccurring = True
         timeSinceLastEvent = time()
@@ -513,8 +540,8 @@ while run:
                 objects.append(
                     Rain(
                         randint(
-                            ship.rect.centerx - eventType["Summon Range Start"],
-                            ship.rect.centerx + eventType["Summon Range End"],
+                            ships[name].rect.centerx - eventType["Summon Range Start"],
+                            ships[name].rect.centerx + eventType["Summon Range End"],
                         ),
                         sky_start - window_height,
                         eventType["Summon"],
@@ -539,11 +566,12 @@ while run:
     for bubble in bubbles:
         bubble.display(window, x_offset, y_offset)
 
-    ship.display(window, x_offset, y_offset)
+    for ship in ships:
+        ships[ship].display(window, x_offset, y_offset)
 
     # displaying pressure
     pg.draw.rect(window, (0, 0, 0), pressure_rect)
-    current_pressure = min(max(ship.rect.y / ship.pressure_limit, 0), 1)
+    current_pressure = min(max(ships[name].rect.y / ships[name].pressure_limit, 0), 1)
     current_pressure_rect.width = 92 * current_pressure
     pg.draw.rect(
         window,
@@ -553,7 +581,7 @@ while run:
     pressureText.display(window)
 
     # displaying health
-    current_health = ship.health / ship.max_health
+    current_health = max(ships[name].health / ships[name].max_health, 0)
     current_health_rect.width = 92 * current_health
     healthText.display(window)
     pg.draw.rect(window, (0, 0, 0), healthRect)
@@ -566,7 +594,7 @@ while run:
     # displaying inventory & shifting inventory
     inventoryX += inventoryShift
     window.blit(assets[inventoryImageName], (inventoryX, inventoryY))
-    for slot in slots:
+    for slot in ships[name].slots:
         slot.rect.x += inventoryShift
         if slot.name is not None:
             window.blit(assets[slot.name], slot.rect)
@@ -574,16 +602,22 @@ while run:
 
     # displaying hotbar
     window.blit(assets[hotbarImageName], (hotbarX, hotbarY))
-    for slot in hotbarSlots:
+    for slot in ships[name].hotBarSlots:
         if slot.name is not None:
             window.blit(assets[slot.name], slot.rect)
             blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
 
-    # displaying heldItem
-    if heldItem.name is not None:
-        heldItem.rect.center = mouseX, mouseY
-        window.blit(assets[heldItem.name], heldItem.rect)
-        blit_text(window, heldItem.count, heldItem.rect.topleft, (255, 255, 255), 20)
+    # displaying ship.heldItem
+    if ships[name].heldItem.name is not None:
+        ships[name].heldItem.rect.center = mouseX, mouseY
+        window.blit(assets[ships[name].heldItem.name], ships[name].heldItem.rect)
+        blit_text(
+            window,
+            ships[name].heldItem.count,
+            ships[name].heldItem.rect.topleft,
+            (255, 255, 255),
+            20,
+        )
 
     # upgrade displaying
     if upgradeFound:
