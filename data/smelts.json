@@ -6,5 +6,9 @@
     {
         "Name": "gold ore",
         "Smelt": "gold ingot"
+    },
+    {
+        "Name": "stone",
+        "Smelt": "melted stone"
     }
 ]
