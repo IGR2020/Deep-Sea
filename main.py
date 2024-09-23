@@ -227,10 +227,74 @@ class Item(Object):
         if self.rect.y < sky_start:
             self.rect.y += 7
 
+class Mob:
+    animation_count = 0
+    animation_speed = 3
+    vel = 0
+    angle = 0
+    rotateDir = True # true is for rotation to the left
+    type = "Mob"
+    x_vel, y_vel = 0, 0
+
+    def __init__(self, x, y, name: str, sheet: bool, health=50, correctionAngle=0) -> None:
+        if sheet:
+            self.image = assets[name][0]
+        else:
+            self.image = assets[name]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.mask = pg.mask.from_surface(self.image)
+        self.name = name
+        self.is_sheet = sheet
+        self.correctionAngle = correctionAngle
+        self.health = health
+        self.rotatedImage = pg.transform.rotate(self.image, self.angle)
+
+    def reload(self):
+        self.rotatedImage = pg.transform.rotate(self.image, self.angle)
+
+    def display(self, window, x_offset, y_offset):
+        if self.is_sheet:
+            self.animation_count += 1
+            index = (self.animation_count // self.animation_speed) % len(assets[self.name])
+            self.image = assets[self.name][index]
+            self.reload()
+            window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
+        else:
+            window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
+            self.reload()
+
+    def script(self):
+        self.move()
+        for ship in ships:
+            distanceToPlayer = abs(self.rect.x - ships[ship].rect.x) + abs(self.rect.y - ships[ship].rect.y)
+            if distanceToPlayer < mobAttackDistance:
+                target = ships[ship]
+                break
+        else:
+            target = None
+        if target is not None:
+            dx, dy = target.rect.centerx - self.rect.centerx, self.rect.centery - target.rect.centery
+            self.angle = math.degrees(math.atan2(dy, dx)) - self.correctionAngle
+            self.vel = 5
+        else:
+            if randint(0, fps//12) == 0:
+                if self.rotateDir: self.angle -= 1
+                else: self.angle += 1
+            if randint(0, fps) == 0: self.rotateDir = not self.rotateDir
+            self.vel = 2    
+
+    
+    def move(self):
+        radians = math.radians(self.angle + 90)
+        self.hrt_vel = math.sin(radians) * self.vel
+        self.vrt_vel = math.cos(radians) * self.vel
+        self.rect.x -= self.hrt_vel
+        self.rect.y -= self.vrt_vel
+        
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
-objects = [Object(300, 200, "Plank")]
+objects = [Object(300, 200, "Plank"), Mob(400, 200, "Shark", True, 50, 180)]
 
 bubbles = []
 
@@ -265,6 +329,8 @@ eventType = None  # assign the json event object in event.json durring event
 freeCam = False
 
 slotFound = False
+
+mobAttackDistance = 500
 
 backgroundMusic.play(-1)
 
@@ -409,7 +475,7 @@ while run:
                     objects.remove(obj)
                     continue
                 breakSound.play()
-                if obj.health < 1:
+                if obj.health < 1 and obj.type != "Mob":
                     for drop in itemsData[obj.name]["Drops"]:
                         for slot in ships[ship].slots:
                             if slot.name == drop:
@@ -424,7 +490,10 @@ while run:
 
                 # elastic knockback
                 obj.health -= abs(ships[ship].vel)
-                ships[ship].health -= itemsData[obj.name]["Damage"]
+                if obj.type == "Mob":
+                    ships[ship].health -= abs(obj.vel)
+                else:
+                    ships[ship].health -= itemsData[obj.name]["Damage"]
                 if ships[ship].vel > 0:
                     ships[ship].vel += 1
                 else:
@@ -443,17 +512,8 @@ while run:
             x_offset -= mouseRelX
             y_offset -= mouseRelY
     else:
-        if ships[name].rect.x - x_offset < scroll_area:
-            x_offset -= round(abs(ships[name].hrt_vel))
-
-        if ships[name].rect.x - x_offset > window_width - scroll_area:
-            x_offset += round(abs(ships[name].hrt_vel))
-
-        if ships[name].rect.y - y_offset < scroll_area:
-            y_offset -= round(abs(ships[name].vrt_vel))
-
-        if ships[name].rect.y - y_offset > window_height - scroll_area:
-            y_offset += round(abs(ships[name].vrt_vel)) + 1
+        x_offset = ships[name].rect.centerx - window_width/2
+        y_offset = ships[name].rect.centery - window_height/2
 
     # checking for available upgrades
     for i, upgrade in enumerate(upgrades):

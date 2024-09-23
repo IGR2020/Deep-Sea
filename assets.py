@@ -37,6 +37,7 @@ object_image_names = list(object_image_names.keys())
 assets.update(load_assets("assets/items", scale=3))
 assets["Bubble"] = pg.transform.scale_by(assets["Bubble"], 2)
 assets.update(load_assets("assets/Events"))
+assets.update(load_assets("assets/Mobs", scale=4, getSubDirsAsList=True))
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
