@@ -37,7 +37,9 @@ object_image_names = list(object_image_names.keys())
 assets.update(load_assets("assets/items", scale=3))
 assets["Bubble"] = pg.transform.scale_by(assets["Bubble"], 2)
 assets.update(load_assets("assets/Events"))
-assets.update(load_assets("assets/Mobs", scale=4, getSubDirsAsList=True))
+mob_image_names = load_assets("assets/Mobs", scale=5, getSubDirsAsList=True)
+assets.update(mob_image_names)
+mob_image_names = list(mob_image_names.keys())
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
@@ -57,6 +59,7 @@ upgrades = loadJson("data/upgrades.json")
 events = loadJson("data/events.json")
 eventsCopy = events # a copy of the events to reset it after an event is over
 smelts = loadJson("data/smelts.json")
+mobsData = loadJson("data/mobs.json")
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"

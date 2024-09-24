@@ -135,6 +135,9 @@ class Object(pg.sprite.Sprite):
         self.angle += self.rotation
         self.reload()
 
+        if self.rect.y < sky_start:
+            self.rect.y += 8
+
     def reload(self):
         self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.rect = self.rotatedImage.get_rect(center=self.rect.center)
@@ -224,19 +227,17 @@ class Item(Object):
 
         super().script()
 
-        if self.rect.y < sky_start:
-            self.rect.y += 7
 
 class Mob:
     animation_count = 0
     animation_speed = 3
     vel = 0
     angle = 0
-    rotateDir = True # true is for rotation to the left
+    rotateDir = True  # true is for rotation to the left
     type = "Mob"
     x_vel, y_vel = 0, 0
 
-    def __init__(self, x, y, name: str, sheet: bool, health=50, correctionAngle=0) -> None:
+    def __init__(self, x, y, name: str, sheet: bool, correctionAngle=0) -> None:
         if sheet:
             self.image = assets[name][0]
         else:
@@ -246,7 +247,8 @@ class Mob:
         self.name = name
         self.is_sheet = sheet
         self.correctionAngle = correctionAngle
-        self.health = health
+        self.health = mobsData[name]["Health"]
+        self.damage = mobsData[name]["Damage"]
         self.rotatedImage = pg.transform.rotate(self.image, self.angle)
 
     def reload(self):
@@ -255,46 +257,59 @@ class Mob:
     def display(self, window, x_offset, y_offset):
         if self.is_sheet:
             self.animation_count += 1
-            index = (self.animation_count // self.animation_speed) % len(assets[self.name])
+            index = (self.animation_count // self.animation_speed) % len(
+                assets[self.name]
+            )
             self.image = assets[self.name][index]
             self.reload()
-            window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
+            window.blit(
+                self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset)
+            )
         else:
-            window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
+            window.blit(
+                self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset)
+            )
             self.reload()
 
     def script(self):
         self.move()
         for ship in ships:
-            distanceToPlayer = abs(self.rect.x - ships[ship].rect.x) + abs(self.rect.y - ships[ship].rect.y)
+            distanceToPlayer = abs(self.rect.x - ships[ship].rect.x) + abs(
+                self.rect.y - ships[ship].rect.y
+            )
             if distanceToPlayer < mobAttackDistance:
                 target = ships[ship]
                 break
         else:
             target = None
         if target is not None:
-            dx, dy = target.rect.centerx - self.rect.centerx, self.rect.centery - target.rect.centery
+            dx, dy = (
+                target.rect.centerx - self.rect.centerx,
+                self.rect.centery - target.rect.centery,
+            )
             self.angle = math.degrees(math.atan2(dy, dx)) - self.correctionAngle
             self.vel = 5
         else:
-            if randint(0, fps//12) == 0:
-                if self.rotateDir: self.angle -= 1
-                else: self.angle += 1
-            if randint(0, fps) == 0: self.rotateDir = not self.rotateDir
-            self.vel = 2    
+            if randint(0, fps // 12) == 0:
+                if self.rotateDir:
+                    self.angle -= 1
+                else:
+                    self.angle += 1
+            if randint(0, fps) == 0:
+                self.rotateDir = not self.rotateDir
+            self.vel = 2
 
-    
     def move(self):
         radians = math.radians(self.angle + 90)
         self.hrt_vel = math.sin(radians) * self.vel
         self.vrt_vel = math.cos(radians) * self.vel
         self.rect.x -= self.hrt_vel
         self.rect.y -= self.vrt_vel
-        
+
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
-objects = [Object(300, 200, "Plank"), Mob(400, 200, "Shark", True, 50, 180)]
+objects = [Object(300, 200, "Plank"), Mob(400, 200, "Shark", True, 180)]
 
 bubbles = []
 
@@ -331,6 +346,8 @@ freeCam = False
 slotFound = False
 
 mobAttackDistance = 500
+mobSummonChance = 60
+debrisSummonChance = 10
 
 backgroundMusic.play(-1)
 
@@ -440,14 +457,15 @@ while run:
     # extracting mouse position
     mouseX, mouseY = pg.mouse.get_pos()
 
-    if randint(0, fps * 10) == 0:
+    # summoning debris
+    if randint(0, fps * debrisSummonChance) == 0:
         objects.append(
             Object(
                 randint(
                     ships[name].rect.centerx - window_width // 2,
                     ships[name].rect.centerx + window_width // 2,
                 ),
-                -100,
+                sky_start - 200,
                 choice(object_image_names),
             )
         )
@@ -475,7 +493,7 @@ while run:
                     objects.remove(obj)
                     continue
                 breakSound.play()
-                if obj.health < 1 and obj.type != "Mob":
+                if obj.health < 1 and obj.type == "Object":
                     for drop in itemsData[obj.name]["Drops"]:
                         for slot in ships[ship].slots:
                             if slot.name == drop:
@@ -485,13 +503,24 @@ while run:
                                 slot.name = drop
                                 slot.count += randint(*itemsData[obj.name]["Count"])
                                 break
+                    objects.remove(obj)
 
+                elif obj.health < 1 and obj.type == "Mob":
+                    for drop in mobsData[obj.name]["Drops"]:
+                        for slot in ships[ship].slots:
+                            if slot.name == drop:
+                                slot.count += randint(*mobsData[obj.name]["Count"])
+                                break
+                            if slot.name is None:
+                                slot.name = drop
+                                slot.count += randint(*mobsData[obj.name]["Count"])
+                                break
                     objects.remove(obj)
 
                 # elastic knockback
                 obj.health -= abs(ships[ship].vel)
                 if obj.type == "Mob":
-                    ships[ship].health -= abs(obj.vel)
+                    ships[ship].health -= mobsData[obj.name]["Damage"]
                 else:
                     ships[ship].health -= itemsData[obj.name]["Damage"]
                 if ships[ship].vel > 0:
@@ -512,8 +541,8 @@ while run:
             x_offset -= mouseRelX
             y_offset -= mouseRelY
     else:
-        x_offset = ships[name].rect.centerx - window_width/2
-        y_offset = ships[name].rect.centery - window_height/2
+        x_offset = ships[name].rect.centerx - window_width / 2
+        y_offset = ships[name].rect.centery - window_height / 2
 
     # checking for available upgrades
     for i, upgrade in enumerate(upgrades):
@@ -555,7 +584,11 @@ while run:
     ):
         bubbles.append(
             Particle(
-                "Bubble", ships[name].rect.x + randint(-30, 30), ships[name].rect.y, -1.5, 0
+                "Bubble",
+                ships[name].rect.x + randint(-30, 30),
+                ships[name].rect.y,
+                -1.5,
+                0,
             )
         )
     for bubble in bubbles:
@@ -611,11 +644,26 @@ while run:
                     )
                 )
 
-    # Stopping event
+    # stopping event
     if eventOccurring and eventType is not None:
         if time() - timeSinceLastEvent > eventType["Duration"]:
             eventOccurring = False
             eventType = None
+
+    # summoning mobs
+    if randint(0, fps * mobSummonChance) == 0:
+        objects.append(
+            Mob(
+                randint(
+                    ships[name].rect.centerx - window_width // 2,
+                    ships[name].rect.centerx + window_width // 2,
+                ),
+                ships[name].rect.y + window_height / 2 * 1.1,
+                choice(mob_image_names),
+                True,
+                180,
+            )
+        )
 
     window.fill((0, 0, 139))
     window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
