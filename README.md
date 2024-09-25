@@ -5,7 +5,7 @@ of this has to be done while worrying about the natural predators, fuel and ship
 
 # Installation
 Make sure you have python 3 installed any version of python 3 should work, but the devlopment version for the game was python 3.12.2
-and also run the following command in **CMD** __pip install pygame__, this will allow you to run the game, then just run the **main.py** file like an __.exe__ and thats it!
+and also run the following command in **CMD** __"pip install pygame"__, this will allow you to run the game, then just run the **main.py** file like an __.exe__ and thats it!
 Also dont try to pin it to task bar.
 
 # Update Logs
