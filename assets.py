@@ -34,7 +34,7 @@ assets["Sky"].fill((51, 153, 255))
 object_image_names = load_assets("assets/Objects")
 assets.update(object_image_names)
 object_image_names = list(object_image_names.keys())
-assets.update(load_assets("assets/items", scale=3))
+assets.update(load_assets("assets/items", scale=3, scaleifsize=(16, 16)))
 assets["Bubble"] = pg.transform.scale_by(assets["Bubble"], 2)
 assets.update(load_assets("assets/Events"))
 mob_image_names = load_assets("assets/Mobs", scale=5, getSubDirsAsList=True)
@@ -60,6 +60,8 @@ events = loadJson("data/events.json")
 eventsCopy = events # a copy of the events to reset it after an event is over
 smelts = loadJson("data/smelts.json")
 mobsData = loadJson("data/mobs.json")
+crafts = loadJson("data/crafts.json")
+craftTrigger = "glue"
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"

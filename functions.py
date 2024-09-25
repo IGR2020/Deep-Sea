@@ -32,7 +32,7 @@ def blit_text(
     return text_surface
 
 
-def load_assets(path, size: int = None, scale: float = None, getSubDirsAsList=False):
+def load_assets(path, size: int = None, scale: float = None, getSubDirsAsList=False, scaleifsize=None):
     sprites = {}
     for file in listdir(path):
         if getSubDirsAsList and isdir(join(path, file)):
@@ -45,8 +45,12 @@ def load_assets(path, size: int = None, scale: float = None, getSubDirsAsList=Fa
         if size is None and scale is None:
             sprites[file.replace(".png", "")] = pg.image.load(join(path, file))
         elif scale is not None:
+            image = pg.image.load(join(path, file))
+            if scaleifsize and image.get_size() != scaleifsize:
+                  sprites[file.replace(".png", "")] = image
+                  continue
             sprites[file.replace(".png", "")] = pg.transform.scale_by(
-                pg.image.load(join(path, file)), scale
+                image, scale
             )
         else:
             sprites[file.replace(".png", "")] = pg.transform.scale(

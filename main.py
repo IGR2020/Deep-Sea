@@ -227,6 +227,8 @@ class Item(Object):
 
         super().script()
 
+    def __repr__(self) -> str:
+        return self.name
 
 class Mob:
     animation_count = 0
@@ -309,7 +311,7 @@ class Mob:
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
-objects = [Object(300, 200, "Plank"), Mob(400, 200, "Shark", True, 180)]
+objects = [Object(300, 200, "Crate"), Mob(400, 200, "Shark", True, 180)]
 
 bubbles = []
 
@@ -348,6 +350,8 @@ slotFound = False
 mobAttackDistance = 500
 mobSummonChance = 60
 debrisSummonChance = 10
+
+collidingItems = []
 
 backgroundMusic.play(-1)
 
@@ -533,6 +537,66 @@ while run:
                 obj.x_vel = -ships[ship].hrt_vel
                 obj.y_vel = -ships[ship].vrt_vel
 
+    # collison for items i.e CRAFTING
+    collidingItems = []
+    for item1 in objects:
+        if item1.type != "Item":
+            continue
+
+        for item2 in objects:
+            if item2.type != "Item":
+                continue
+
+            if id(item1) == id(item2):
+                continue
+
+            if item1.rect.colliderect(item2.rect):
+
+                for collisionGroup in collidingItems:
+                    if item2 in collisionGroup and item1 in collisionGroup:
+                        break 
+                    if item1 in collisionGroup:
+                        collisionGroup.append(item2)
+                        break
+                    if item2 in collisionGroup:
+                        collisionGroup.append(item1)
+                        break
+                else:
+                    collidingItems.append([item1, item2])
+    for collisionGroup in collidingItems:
+        foundRecipe = True
+        for craft in crafts:
+            for craftItem in craft["Components"]:
+                for item in collisionGroup:
+                    if item.name == craftItem["Name"] and item.count >= craftItem["Count"]:
+                        break
+                else:
+                    break
+            else:
+                break
+        else:
+            foundRecipe = False
+        if not foundRecipe:
+            continue
+        if not True in [item.name=="glue" for item in collisionGroup]:
+            continue
+        objects.append(Item(collisionGroup[0].rect.x, collisionGroup[0].rect.y, craft["Result"]["Name"], craft["Result"]["Count"]))
+        rlist = [] # items to be removed
+        for craftItem in craft["Components"]:
+            for item in collisionGroup:
+                if item.name == craftItem["Name"] and item.count >= craftItem["Count"]:
+                    item.count -= craftItem["Count"]
+                    if item.count < 1:
+                        rlist.append(item)
+        for item in rlist:
+            print("i")
+            objects.remove(item)
+        
+        
+
+            
+                                
+    
     # scrolling of the game window
     mouseRelX, mouseRelY = pg.mouse.get_rel()
     mouseDown = pg.mouse.get_pressed()
@@ -703,6 +767,8 @@ while run:
     inventoryX += inventoryShift
     window.blit(assets[inventoryImageName], (inventoryX, inventoryY))
     for slot in ships[name].slots:
+        if slot.count < 1:
+            slot.name = None
         slot.rect.x += inventoryShift
         if slot.name is not None:
             window.blit(assets[slot.name], slot.rect)
@@ -711,6 +777,8 @@ while run:
     # displaying hotbar
     window.blit(assets[hotbarImageName], (hotbarX, hotbarY))
     for slot in ships[name].hotBarSlots:
+        if slot.count < 1:
+            slot.name = None
         if slot.name is not None:
             window.blit(assets[slot.name], slot.rect)
             blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
