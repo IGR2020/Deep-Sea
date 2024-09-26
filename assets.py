@@ -40,6 +40,8 @@ assets.update(load_assets("assets/Events"))
 mob_image_names = load_assets("assets/Mobs", scale=5, getSubDirsAsList=True)
 assets.update(mob_image_names)
 mob_image_names = list(mob_image_names.keys())
+assets["Selected Slot"] = pg.Surface((15, 15)).convert_alpha()
+assets["Selected Slot"].fill((50, 50, 50, 200))
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
@@ -62,10 +64,15 @@ smelts = loadJson("data/smelts.json")
 mobsData = loadJson("data/mobs.json")
 crafts = loadJson("data/crafts.json")
 craftTrigger = "glue"
+toolData = loadJson("data/tools.json")
+toolNames = list(toolData.keys())
+defaultItemAngleCorrectionPos = 225
+defaultItemAngleCorrection = 45
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"
 guiScale = 3
+assets["Selected Slot"] = pg.transform.scale_by(assets["Selected Slot"], guiScale)
 assets[inventoryImageName] = pg.transform.scale_by(assets[inventoryImageName], guiScale)
 
 inventoryWidth = assets[inventoryImageName].get_width()

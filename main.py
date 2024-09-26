@@ -28,6 +28,8 @@ class Ship:
     slots = []
     hotBarSlots = []
     heldItem = []
+    selectedSlot = 0
+    totalHotBarSlots = 9  # 8 if indexing
 
     def __init__(self, x, y, name, slots, hotBarSlots, heldItem):
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
@@ -100,9 +102,6 @@ class Ship:
 class Object(pg.sprite.Sprite):
     x_vel, y_vel = 0, 0
     angle = 0
-    sink_speed = 0.1
-    sink_vel = 0
-    max_sink_speed = 1
 
     def __init__(self, x, y, name, type="Object") -> None:
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
@@ -117,14 +116,12 @@ class Object(pg.sprite.Sprite):
         if type == "Object":
             self.health = itemsData[self.name]["Health"]
         self.type = type
+        self.sink_vel = randint(10, 30) * 0.1
 
     def display(self, window, x_offset, y_offset):
         window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
 
     def script(self):
-
-        self.sink_vel += self.sink_speed
-        self.sink_vel = min(self.sink_vel, self.max_sink_speed)
 
         self.rect.y += self.y_vel
         self.rect.y += self.sink_vel
@@ -230,6 +227,7 @@ class Item(Object):
     def __repr__(self) -> str:
         return self.name
 
+
 class Mob:
     animation_count = 0
     animation_speed = 3
@@ -240,6 +238,7 @@ class Mob:
     x_vel, y_vel = 0, 0
 
     def __init__(self, x, y, name: str, sheet: bool, correctionAngle=0) -> None:
+        "Make sure the angle - correction angle would make the object right up"
         if sheet:
             self.image = assets[name][0]
         else:
@@ -303,6 +302,27 @@ class Mob:
 
     def move(self):
         radians = math.radians(self.angle + 90)
+        self.hrt_vel = math.sin(radians) * self.vel
+        self.vrt_vel = math.cos(radians) * self.vel
+        self.rect.x -= self.hrt_vel
+        self.rect.y -= self.vrt_vel
+
+
+class ShotItem(Object):
+    hrt_vel, vrt_vel = 0, 0
+
+    def __init__(self, x, y, name, angle, correctionAngle) -> None:
+        "Make sure the angle - correction angle would make the object look up"
+        super().__init__(x, y, name, "ShotItem")
+        self.angle = angle
+        self.correctionAngle = correctionAngle
+        self.scale = 1
+        self.damage = toolData[self.name]["Damage"]
+        self.vel = toolData[self.name]["Speed"]
+        self.totalReload()
+
+    def script(self):
+        radians = math.radians(self.angle - self.correctionAngle)
         self.hrt_vel = math.sin(radians) * self.vel
         self.vrt_vel = math.cos(radians) * self.vel
         self.rect.x -= self.hrt_vel
@@ -376,7 +396,19 @@ while run:
                     )
                 freeCam = not freeCam
 
+        if event.type == pg.MOUSEWHEEL:
+            if ships[name].selectedSlot + event.y > 8:
+                ships[name].selectedSlot = 0
+            elif ships[name].selectedSlot + event.y < 0:
+                ships[name].selectedSlot = ships[name].totalHotBarSlots - 1
+            else:
+                ships[name].selectedSlot = min(
+                    ships[name].totalHotBarSlots - 1, ships[name].selectedSlot + event.y
+                )
+
         if event.type == pg.MOUSEBUTTONUP:
+            if event.button in (2, 4, 5):
+                continue
             if inventoryView:
                 # inventory management
                 slotFound = False
@@ -431,6 +463,37 @@ while run:
                     )
                     ships[name].heldItem.name = None
                     ships[name].heldItem.count = 0
+                elif (
+                    not slotFound
+                    and ships[name].heldItem.name is None
+                    and ships[name].hotBarSlots[ships[name].selectedSlot].name
+                    is not None
+                ):
+                    if (
+                        ships[name].hotBarSlots[ships[name].selectedSlot].name
+                        in toolNames
+                    ):
+                        tool = toolData[
+                            ships[name].hotBarSlots[ships[name].selectedSlot].name
+                        ]
+                        if tool["Type"] == "Shot":
+                            dx, dy = (
+                                ships[name].rect.centerx - (mouseX + x_offset),
+                                (mouseY + y_offset) - ships[name].rect.centery,
+                            )
+                            angle = (
+                                math.degrees(math.atan2(dy, dx)) - defaultItemAngleCorrectionPos
+                            )
+                            objects.append(
+                                ShotItem(
+                                    ships[name].rect.centerx,
+                                    ships[name].rect.centery,
+                                    ships[name].hotBarSlots[ships[name].selectedSlot].name,
+                                    angle,
+                                    defaultItemAngleCorrection
+                                )
+                            )
+                            ships[name].hotBarSlots[ships[name].selectedSlot].count -= 1
                 slotFound = False
 
             # checking for upgrading
@@ -483,6 +546,16 @@ while run:
                     if obj.drop:
                         objects.append(Object.loadFromRain(obj))
                     objects.remove(obj)
+                continue
+            if obj.type == "ShotItem":
+                for obj2 in objects:
+                    if not obj.type in ("Object", "Mob"):
+                        continue
+                    if pg.sprite.collide_mask(obj, obj2):
+                        obj2.health -= obj.damage
+                        obj2.x_vel = obj.hrt_vel * 2
+                        obj2.y_vel = obj.vrt_vel * 2
+                        break
                 continue
             if pg.sprite.collide_mask(ships[ship], obj):
                 if obj.type == "Item":
@@ -554,7 +627,7 @@ while run:
 
                 for collisionGroup in collidingItems:
                     if item2 in collisionGroup and item1 in collisionGroup:
-                        break 
+                        break
                     if item1 in collisionGroup:
                         collisionGroup.append(item2)
                         break
@@ -568,7 +641,10 @@ while run:
         for craft in crafts:
             for craftItem in craft["Components"]:
                 for item in collisionGroup:
-                    if item.name == craftItem["Name"] and item.count >= craftItem["Count"]:
+                    if (
+                        item.name == craftItem["Name"]
+                        and item.count >= craftItem["Count"]
+                    ):
                         break
                 else:
                     break
@@ -578,10 +654,17 @@ while run:
             foundRecipe = False
         if not foundRecipe:
             continue
-        if not True in [item.name=="glue" for item in collisionGroup]:
+        if not True in [item.name == craftTrigger for item in collisionGroup]:
             continue
-        objects.append(Item(collisionGroup[0].rect.x, collisionGroup[0].rect.y, craft["Result"]["Name"], craft["Result"]["Count"]))
-        rlist = [] # items to be removed
+        objects.append(
+            Item(
+                collisionGroup[0].rect.x,
+                collisionGroup[0].rect.y,
+                craft["Result"]["Name"],
+                craft["Result"]["Count"],
+            )
+        )
+        rlist = []  # items to be removed
         for craftItem in craft["Components"]:
             for item in collisionGroup:
                 if item.name == craftItem["Name"] and item.count >= craftItem["Count"]:
@@ -591,12 +674,7 @@ while run:
         for item in rlist:
             print("i")
             objects.remove(item)
-        
-        
 
-            
-                                
-    
     # scrolling of the game window
     mouseRelX, mouseRelY = pg.mouse.get_rel()
     mouseDown = pg.mouse.get_pressed()
@@ -794,6 +872,11 @@ while run:
             (255, 255, 255),
             20,
         )
+
+    # highlighting selected slot
+    window.blit(
+        assets["Selected Slot"], ships[name].hotBarSlots[ships[name].selectedSlot].rect
+    )
 
     # upgrade displaying
     if upgradeFound:

@@ -1,4 +1,4 @@
 A note on the json files in this directory
 
 1 in crafts.json
-    make sure that if 2 recipes don't have the same recipe, as of 25-september-2024
+    make sure that if 2 recipes don't have the same components, as of 25-september-2024
