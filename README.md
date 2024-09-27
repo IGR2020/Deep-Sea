@@ -31,3 +31,4 @@ Also dont try to pin it to task bar.
 + Mobs!
 + Mobs Summoning & Item Rain.
 + Item Crafting!
++ Item Throwing!
