@@ -314,7 +314,8 @@ class ShotItem(Object):
     def __init__(self, x, y, name, angle, correctionAngle) -> None:
         "Make sure the angle - correction angle would make the object look up"
         super().__init__(x, y, name, "ShotItem")
-        self.angle = angle
+        self.angle = angle - correctionAngle
+        print(self.angle)
         self.correctionAngle = correctionAngle
         self.scale = 1
         self.damage = toolData[self.name]["Damage"]
@@ -322,15 +323,23 @@ class ShotItem(Object):
         self.totalReload()
 
     def script(self):
-        radians = math.radians(self.angle - self.correctionAngle)
+        radians = math.radians(self.angle + self.correctionAngle)
         self.hrt_vel = math.sin(radians) * self.vel
         self.vrt_vel = math.cos(radians) * self.vel
         self.rect.x -= self.hrt_vel
         self.rect.y -= self.vrt_vel
+        if self.angle < 179:
+            self.angle += 0.5
+            self.reload()
+        elif self.angle > 181:
+            self.angle -= 0.5
+            self.reload()
 
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
+ships[name].hotBarSlots[0].name = "spear"
+ships[name].hotBarSlots[0].count = 90
 objects = [Object(300, 200, "Crate"), Mob(400, 200, "Shark", True, 180)]
 
 bubbles = []
@@ -482,15 +491,18 @@ while run:
                                 (mouseY + y_offset) - ships[name].rect.centery,
                             )
                             angle = (
-                                math.degrees(math.atan2(dy, dx)) - defaultItemAngleCorrectionPos
-                            )
+                                math.degrees(math.atan2(dy, dx))
+                            ) + defaultItemAngleCorrectionPos
+                            print(angle)
                             objects.append(
                                 ShotItem(
                                     ships[name].rect.centerx,
                                     ships[name].rect.centery,
-                                    ships[name].hotBarSlots[ships[name].selectedSlot].name,
+                                    ships[name]
+                                    .hotBarSlots[ships[name].selectedSlot]
+                                    .name,
                                     angle,
-                                    defaultItemAngleCorrection
+                                    defaultItemAngleCorrection,
                                 )
                             )
                             ships[name].hotBarSlots[ships[name].selectedSlot].count -= 1
@@ -498,7 +510,7 @@ while run:
 
             # checking for upgrading
             if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
-                CorrectSound.play()
+                correctSound.play()
 
                 upgrade = upgrades[upgradeID]
                 for cost in upgrade["Cost"]:
@@ -537,6 +549,7 @@ while run:
             )
         )
 
+    # OBJECT HANDLER
     ships[name].script()
     for ship in ships:
         for obj in objects:
@@ -548,13 +561,19 @@ while run:
                     objects.remove(obj)
                 continue
             if obj.type == "ShotItem":
+                if obj.rect.y > ships[name].pressure_limit:
+                    objects.remove(obj)
+                    continue
                 for obj2 in objects:
-                    if not obj.type in ("Object", "Mob"):
+                    if not obj2.type in ("Object", "Mob"):
                         continue
                     if pg.sprite.collide_mask(obj, obj2):
                         obj2.health -= obj.damage
-                        obj2.x_vel = obj.hrt_vel * 2
-                        obj2.y_vel = obj.vrt_vel * 2
+                        obj2.x_vel = -obj.hrt_vel * 2
+                        obj2.y_vel = -obj.vrt_vel * 2
+                        objects.append(Item(obj.rect.x, obj.rect.y, obj.name, 1))
+                        objects[-1].angle = obj.angle
+                        objects.remove(obj)
                         break
                 continue
             if pg.sprite.collide_mask(ships[ship], obj):
@@ -569,7 +588,8 @@ while run:
                             break
                     objects.remove(obj)
                     continue
-                breakSound.play()
+                if obj.type == "Object":
+                    breakSound.play()
                 if obj.health < 1 and obj.type == "Object":
                     for drop in itemsData[obj.name]["Drops"]:
                         for slot in ships[ship].slots:
@@ -583,6 +603,7 @@ while run:
                     objects.remove(obj)
 
                 elif obj.health < 1 and obj.type == "Mob":
+                    deathSound.play()
                     for drop in mobsData[obj.name]["Drops"]:
                         for slot in ships[ship].slots:
                             if slot.name == drop:
@@ -664,6 +685,7 @@ while run:
                 craft["Result"]["Count"],
             )
         )
+        craftSound.play()
         rlist = []  # items to be removed
         for craftItem in craft["Components"]:
             for item in collisionGroup:
@@ -672,7 +694,6 @@ while run:
                     if item.count < 1:
                         rlist.append(item)
         for item in rlist:
-            print("i")
             objects.remove(item)
 
     # scrolling of the game window
@@ -875,7 +896,11 @@ while run:
 
     # highlighting selected slot
     window.blit(
-        assets["Selected Slot"], ships[name].hotBarSlots[ships[name].selectedSlot].rect
+        assets["Selected Slot"],
+        (
+            ships[name].hotBarSlots[ships[name].selectedSlot].rect.x - 1,
+            ships[name].hotBarSlots[ships[name].selectedSlot].rect.y + 1,
+        ),
     )
 
     # upgrade displaying

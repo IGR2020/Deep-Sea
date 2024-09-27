@@ -41,14 +41,16 @@ mob_image_names = load_assets("assets/Mobs", scale=5, getSubDirsAsList=True)
 assets.update(mob_image_names)
 mob_image_names = list(mob_image_names.keys())
 assets["Selected Slot"] = pg.Surface((15, 15)).convert_alpha()
-assets["Selected Slot"].fill((50, 50, 50, 200))
+assets["Selected Slot"].fill((200, 200, 200, 100))
 
 # music
 backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
 backgroundMusic.set_volume(0.7)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
-CorrectSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
+correctSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
+craftSound = pg.mixer.Sound("assets/Sounds/Craft.mp3")
+deathSound = pg.mixer.Sound("assets/Sounds/Death.mp3")
 
 
 # defines location of font for Text object
@@ -66,7 +68,7 @@ crafts = loadJson("data/crafts.json")
 craftTrigger = "glue"
 toolData = loadJson("data/tools.json")
 toolNames = list(toolData.keys())
-defaultItemAngleCorrectionPos = 225
+defaultItemAngleCorrectionPos = 90
 defaultItemAngleCorrection = 45
 
 # creation of inventory slots
