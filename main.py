@@ -329,10 +329,10 @@ class ShotItem(Object):
         self.rect.x -= self.hrt_vel
         self.rect.y -= self.vrt_vel
         if self.angle < 179:
-            self.angle += 0.5
+            self.angle += 1
             self.reload()
         elif self.angle > 181:
-            self.angle -= 0.5
+            self.angle -= 1
             self.reload()
 
 
@@ -590,27 +590,13 @@ while run:
                     breakSound.play()
                 if obj.health < 1 and obj.type == "Object":
                     for drop in itemsData[obj.name]["Drops"]:
-                        for slot in ships[ship].slots:
-                            if slot.name == drop:
-                                slot.count += randint(*itemsData[obj.name]["Count"])
-                                break
-                            if slot.name is None:
-                                slot.name = drop
-                                slot.count += randint(*itemsData[obj.name]["Count"])
-                                break
+                        objects.append(Item(obj.rect.x, obj.rect.y, drop, randint(*itemsData[obj.name]["Count"])))
                     objects.remove(obj)
 
                 elif obj.health < 1 and obj.type == "Mob":
                     deathSound.play()
                     for drop in mobsData[obj.name]["Drops"]:
-                        for slot in ships[ship].slots:
-                            if slot.name == drop:
-                                slot.count += randint(*mobsData[obj.name]["Count"])
-                                break
-                            if slot.name is None:
-                                slot.name = drop
-                                slot.count += randint(*mobsData[obj.name]["Count"])
-                                break
+                        objects.append(Item(obj.rect.x, obj.rect.y, drop, randint(*mobsData[obj.name]["Count"])))
                     objects.remove(obj)
 
                 # elastic knockback
