@@ -4,6 +4,7 @@ In the sea the player can upgrade their ship and collect items, as well as disco
 of this has to be done while worrying about the natural predators, fuel and ship health.
 
 # Installation
+Click the green code button and download the zip file then extract it.
 Make sure you have python 3 installed any version of python 3 should work, but the devlopment version for the game was python 3.12.2
 and also run the following command in **CMD** __"pip install pygame"__ (don't put the quotes), this will allow you to run the game, then just run the **main.py** file like an __.exe__ and thats it!
 Also dont try to pin it to task bar.
