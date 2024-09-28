@@ -40,6 +40,9 @@ assets.update(load_assets("assets/Events"))
 mob_image_names = load_assets("assets/Mobs", scale=5, getSubDirsAsList=True)
 assets.update(mob_image_names)
 mob_image_names = list(mob_image_names.keys())
+for key in mob_image_names:
+    if "Attackbox" in  key:
+        mob_image_names.remove(key)
 assets["Selected Slot"] = pg.Surface((15, 15)).convert_alpha()
 assets["Selected Slot"].fill((200, 200, 200, 100))
 
@@ -51,6 +54,8 @@ breakSound.set_volume(3)
 correctSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
 craftSound = pg.mixer.Sound("assets/Sounds/Craft.mp3")
 deathSound = pg.mixer.Sound("assets/Sounds/Death.mp3")
+biteSound = pg.mixer.Sound("assets/Sounds/Bite.mp3")
+biteSound.set_volume(0.3)
 
 
 # defines location of font for Text object
@@ -61,7 +66,7 @@ coordinates = loadJson("data/coordinates.json")
 itemsData = loadJson("data/items.json")
 upgrades = loadJson("data/upgrades.json")
 events = loadJson("data/events.json")
-eventsCopy = events # a copy of the events to reset it after an event is over
+eventsCopy = loadJson("data/events.json") # a copy of the events to reset it after an event is over
 smelts = loadJson("data/smelts.json")
 mobsData = loadJson("data/mobs.json")
 crafts = loadJson("data/crafts.json")

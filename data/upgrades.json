@@ -21,17 +21,17 @@
     },
     {
         "Type": "Health",
-        "Change": 700,
+        "Change": 900,
         "Cost": [
             {
                 "Name": "iron ingot",
-                "Count": 4
+                "Count": 3
             }
         ]
     },
     {
         "Type": "Depth",
-        "Change": 1500,
+        "Change": 3000,
         "Cost": [
             {
                 "Name": "gold ingot",
@@ -40,19 +40,39 @@
         ]
     },
     {
-        "Type": "Health",
-        "Change": 1700,
+        "Type": "Damage",
+        "Change": 40,
         "Cost": [
             {
                 "Name": "gold ingot",
-                "Count": 5
-            },
-            {
-                "Name": "iron ingot",
                 "Count": 3
             },
             {
+                "Name": "iron ingot",
+                "Count": 2
+            },
+            {
                 "Name": "glowing dust",
+                "Count": 2
+            }
+        ]
+    },
+    {
+        "Type": "Speed",
+        "Change": 10,
+        "Cost": [
+            {
+                "Name": "glowing dust",
+                "Count": 2
+            }
+        ]
+    },
+    {
+        "Type": "Acceleration",
+        "Change": 0.5,
+        "Cost": [
+            {
+                "Name": "iron ingot",
                 "Count": 2
             }
         ]

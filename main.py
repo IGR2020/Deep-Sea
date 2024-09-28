@@ -30,6 +30,9 @@ class Ship:
     heldItem = []
     selectedSlot = 0
     totalHotBarSlots = 9  # 8 if indexing
+    damage = 0
+    speed = 10
+    acceleration = 1
 
     def __init__(self, x, y, name, slots, hotBarSlots, heldItem):
         self.rect = pg.Rect(x, y, assets[name].get_width(), assets[name].get_height())
@@ -73,7 +76,7 @@ class Ship:
             if self.disabled:
                 self.vel += 0.3
             else:
-                self.vel += 1
+                self.vel += self.acceleration
 
         # auto removing disabled tag
         if time() - self.time_since_disabled > self.disabled_time:
@@ -96,7 +99,7 @@ class Ship:
             else:
                 self.vel += 0.5
             self.vel = min(self.vel, 0)
-        self.vel = max(min(self.vel, 10), -10)
+        self.vel = max(min(self.vel, self.speed), -self.speed)
 
 
 class Object(pg.sprite.Sprite):
@@ -237,7 +240,9 @@ class Mob:
     type = "Mob"
     x_vel, y_vel = 0, 0
 
-    def __init__(self, x, y, name: str, sheet: bool, correctionAngle=0) -> None:
+    def __init__(
+        self, x, y, name: str, sheet: bool, correctionAngle=0, attackbox=None
+    ) -> None:
         "Make sure the angle - correction angle would make the object right up"
         if sheet:
             self.image = assets[name][0]
@@ -251,9 +256,32 @@ class Mob:
         self.health = mobsData[name]["Health"]
         self.damage = mobsData[name]["Damage"]
         self.rotatedImage = pg.transform.rotate(self.image, self.angle)
+        self.attackbox = attackbox
+        if self.attackbox is None and not self.is_sheet:
+            self.attackImage = assets[self.name]
+        elif self.attackbox is None and self.is_sheet:
+            self.attackImage = assets[self.name][0]
+        elif self.is_sheet:
+            self.attackImage = assets[self.name + " Attackbox"]
+        else:
+            self.attackImage = assets[self.attackbox]
+        if self.attackbox is None:
+            self.attackMask = self.mask
+        else:
+            if self.is_sheet:
+                self.attackMask = pg.mask.from_surface(self.attackImage)
+            else:
+                self.attackMask = pg.mask.from_surface(self.attackImage)
+        if self.is_sheet:
+            self.rotatedAttackImage = assets[self.name + " Attackbox"]
+        else:
+            self.rotatedAttackImage = assets[self.name]
 
     def reload(self):
         self.rotatedImage = pg.transform.rotate(self.image, self.angle)
+        self.mask = pg.mask.from_surface(self.rotatedImage)
+        self.rotatedAttackImage = pg.transform.rotate(self.attackImage, self.angle)
+        self.attackMask = pg.mask.from_surface(self.rotatedAttackImage)
 
     def display(self, window, x_offset, y_offset):
         if self.is_sheet:
@@ -289,7 +317,8 @@ class Mob:
                 self.rect.centery - target.rect.centery,
             )
             self.angle = math.degrees(math.atan2(dy, dx)) - self.correctionAngle
-            self.vel = 5
+            self.vel += 0.4
+            self.vel = min(self.vel, 5)
         else:
             if randint(0, fps // 12) == 0:
                 if self.rotateDir:
@@ -298,7 +327,8 @@ class Mob:
                     self.angle += 1
             if randint(0, fps) == 0:
                 self.rotateDir = not self.rotateDir
-            self.vel = 2
+            self.vel += 0.2
+            self.vel = min(self.vel, 2)
 
     def move(self):
         radians = math.radians(self.angle + 90)
@@ -338,7 +368,7 @@ class ShotItem(Object):
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
-objects = [Object(300, 200, "Crate"), Mob(400, 200, "Shark", True, 180)]
+objects = [Object(300, 200, "Crate"), Mob(400, 200, "Shark", True, 180, True)]
 
 bubbles = []
 
@@ -367,15 +397,15 @@ upgradeImageFloat = -1
 eventOccurring = False
 timeSinceLastEvent = 0
 eventGap = 60  # minimum time between events (time in seconds)
-eventChance = 60  # chance of event occurring (time in seconds)
+eventChance = 45  # chance of event occurring (time in seconds)
 eventType = None  # assign the json event object in event.json durring event
 
 freeCam = False
 
 slotFound = False
 
-mobAttackDistance = 500
-mobSummonChance = 60
+mobAttackDistance = 450
+mobSummonChance = 50
 debrisSummonChance = 10
 
 collidingItems = []
@@ -526,6 +556,12 @@ while run:
                 elif upgrade["Type"] == "Health":
                     ships[name].max_health += upgrade["Change"]
                     ships[name].health += upgrade["Change"]
+                elif upgrade["Type"] == "Damage":
+                    ships[name].damage += upgrade["Change"]
+                elif upgrade["Type"] == "Speed":
+                    ships[name].speed += upgrade["Change"]
+                elif upgrade["Type"] == "Acceleration":
+                    ships[name].acceleration += upgrade["Change"]
 
                 upgrades.remove(upgrade)
                 upgradeFound = False
@@ -588,21 +624,40 @@ while run:
                     continue
                 if obj.type == "Object":
                     breakSound.play()
+                elif obj.type == "Mob":
+                    biteSound.play()
                 if obj.health < 1 and obj.type == "Object":
                     for drop in itemsData[obj.name]["Drops"]:
-                        objects.append(Item(obj.rect.x, obj.rect.y, drop, randint(*itemsData[obj.name]["Count"])))
+                        objects.append(
+                            Item(
+                                obj.rect.x,
+                                obj.rect.y,
+                                drop,
+                                randint(*itemsData[obj.name]["Count"]),
+                            )
+                        )
                     objects.remove(obj)
 
                 elif obj.health < 1 and obj.type == "Mob":
                     deathSound.play()
                     for drop in mobsData[obj.name]["Drops"]:
-                        objects.append(Item(obj.rect.x, obj.rect.y, drop, randint(*mobsData[obj.name]["Count"])))
+                        objects.append(
+                            Item(
+                                obj.rect.x,
+                                obj.rect.y,
+                                drop,
+                                randint(*mobsData[obj.name]["Count"]),
+                            )
+                        )
                     objects.remove(obj)
 
                 # elastic knockback
-                obj.health -= abs(ships[ship].vel)
+                obj.health -= abs(ships[ship].vel) + ships[ship].damage
                 if obj.type == "Mob":
-                    ships[ship].health -= mobsData[obj.name]["Damage"]
+                    xo = -ships[ship].rect[0] + obj.rect[0]
+                    yo = -ships[ship].rect[1] + obj.rect[1]
+                    if ships[ship].mask.overlap_area(obj.attackMask, (xo, yo)):
+                        ships[ship].health -= mobsData[obj.name]["Damage"]
                 else:
                     ships[ship].health -= itemsData[obj.name]["Damage"]
                 if ships[ship].vel > 0:
@@ -612,8 +667,11 @@ while run:
                 ships[ship].vel = -ships[ship].vel
                 ships[ship].disabled = True
                 ships[ship].time_since_disabled = time()
-                obj.x_vel = -ships[ship].hrt_vel
-                obj.y_vel = -ships[ship].vrt_vel
+                if obj.type == "Mob":
+                    obj.vel = -obj.vel
+                else:
+                    obj.x_vel = -ships[ship].hrt_vel
+                    obj.y_vel = -ships[ship].vrt_vel
 
     # collison for items i.e CRAFTING
     collidingItems = []
@@ -809,6 +867,7 @@ while run:
                 choice(mob_image_names),
                 True,
                 180,
+                True,
             )
         )
 

@@ -3,5 +3,6 @@
     "Rock": {"Health": 24, "Drops": ["stone"], "Damage": 7, "Count": [1, 4]},
     "Iron Ore": {"Health": 32, "Drops": ["iron ore", "stone"], "Damage": 9, "Count": [2, 3]},
     "Asteroid": {"Health": 80, "Drops": ["iron ore", "stone", "gold ore", "glowing dust"], "Damage": 20, "Count": [4, 10]},
-    "Crate": {"Health": 16, "Drops":  ["wood", "glue"], "Damage": 4, "Count": [0, 2]}
+    "Crate": {"Health": 16, "Drops":  ["wood", "glue"], "Damage": 4, "Count": [0, 2]},
+    "Coal Ore": {"Health": 28, "Drops": ["coal ore", "stone"], "Damage": 8, "Count": [2, 3]}
 }
