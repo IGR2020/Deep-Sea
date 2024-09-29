@@ -735,7 +735,6 @@ while run:
                     continue
                 if obj.rect.collidepoint((mouseX + x_offset, mouseY + y_offset)):
                     obj.health -= toolData[item_name]["Damage"]
-                    print("umm")
                     item.data["Uses"] -= 1
                     if item.data["Uses"] < 1:
                         item.count -= 1
