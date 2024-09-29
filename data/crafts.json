@@ -1,3 +1,5 @@
 [
-    {"Components": [{"Name": "iron ingot", "Count": 1}, {"Name": "wood", "Count": 2}], "Result": {"Name": "spear", "Count": 1}}
+    {"Components": [{"Name": "iron ingot", "Count": 1}, {"Name": "wood", "Count": 2}], "Result": {"Name": "spear", "Count": 1}},
+    {"Components": [{"Name": "iron ingot", "Count": 1}, {"Name": "coal", "Count": 1}], "Result": {"Name": "steel", "Count": 2}},
+    {"Components": [{"Name": "steel", "Count": 1}, {"Name": "wood", "Count": 2}], "Result": {"Name": "hoe", "Count": 1}}
 ]

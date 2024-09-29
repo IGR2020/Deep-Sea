@@ -27,7 +27,7 @@ class Ship:
     max_health = health
     slots = []
     hotBarSlots = []
-    heldItem = []
+    heldItem = None
     selectedSlot = 0
     totalHotBarSlots = 9  # 8 if indexing
     damage = 0
@@ -46,6 +46,36 @@ class Ship:
 
     def display(self, window, x_offset, y_offset):
         window.blit(self.rotatedImage, (self.rect.x - x_offset, self.rect.y - y_offset))
+        if (
+            self.heldItem.name is None
+            and self.hotBarSlots[self.selectedSlot].name is not None
+        ):
+            if self.hotBarSlots[self.selectedSlot].name in toolNames:
+                if (
+                    toolData[self.hotBarSlots[self.selectedSlot].name]["Type"]
+                    == "Slash"
+                ):
+                    try:
+                        self.hotBarSlots[self.selectedSlot].data["Angle"]
+                        self.hotBarSlots[self.selectedSlot].data["Uses"]
+                    except:
+                        self.hotBarSlots[self.selectedSlot].data["Angle"] = 0
+                        self.hotBarSlots[self.selectedSlot].data["Uses"] = toolData[
+                            self.hotBarSlots[self.selectedSlot].name
+                        ]["Uses"]
+                    image = pg.transform.rotate(
+                        assets[self.hotBarSlots[self.selectedSlot].name],
+                        self.hotBarSlots[self.selectedSlot].data["Angle"],
+                    )
+                    self.hotBarSlots[self.selectedSlot].data["Image"] = image
+                    self.hotBarSlots[self.selectedSlot].data["Angle"] += randint(0, 5)
+                    window.blit(
+                        image,
+                        (
+                            mouseX - image.get_width() / 2,
+                            mouseY - image.get_height() / 2,
+                        ),
+                    )
 
     def move(self):
         radians = math.radians(self.angle)
@@ -368,6 +398,8 @@ class ShotItem(Object):
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
+ships[name].hotBarSlots[0].name = "hoe"
+ships[name].hotBarSlots[0].count = 100
 objects = [Object(300, 200, "Crate"), Mob(400, 200, "Shark", True, 180, True)]
 
 bubbles = []
@@ -408,6 +440,9 @@ mobAttackDistance = 450
 mobSummonChance = 50
 debrisSummonChance = 10
 
+mouseDownStart = None
+is_slashing = False
+
 collidingItems = []
 
 backgroundMusic.play(-1)
@@ -443,7 +478,11 @@ while run:
                     ships[name].totalHotBarSlots - 1, ships[name].selectedSlot + event.y
                 )
 
+        if event.type == pg.MOUSEBUTTONDOWN:
+            mouseDownStart = mouseX, mouseY
+
         if event.type == pg.MOUSEBUTTONUP:
+            mouseDownStart = None
             if event.button in (2, 4, 5):
                 continue
             if inventoryView:
@@ -567,8 +606,10 @@ while run:
                 upgradeFound = False
                 upgradeID = None
 
-    # extracting mouse position
+    # extracting mouse events
     mouseX, mouseY = pg.mouse.get_pos()
+    mouseRelX, mouseRelY = pg.mouse.get_rel()
+    mouseDown = pg.mouse.get_pressed()
 
     # summoning debris
     if randint(0, fps * debrisSummonChance) == 0:
@@ -610,23 +651,9 @@ while run:
                         objects.remove(obj)
                         break
                 continue
-            if pg.sprite.collide_mask(ships[ship], obj):
-                if obj.type == "Item":
-                    for slot in ships[ship].slots:
-                        if slot.name == obj.name:
-                            slot.count += obj.count
-                            break
-                        if slot.name is None:
-                            slot.name = obj.name
-                            slot.count = obj.count
-                            break
-                    objects.remove(obj)
-                    continue
-                if obj.type == "Object":
-                    breakSound.play()
-                elif obj.type == "Mob":
-                    biteSound.play()
-                if obj.health < 1 and obj.type == "Object":
+
+            if obj.type == "Object":
+                if obj.health < 1:
                     for drop in itemsData[obj.name]["Drops"]:
                         objects.append(
                             Item(
@@ -637,8 +664,8 @@ while run:
                             )
                         )
                     objects.remove(obj)
-
-                elif obj.health < 1 and obj.type == "Mob":
+            elif obj.type == "Mob":
+                if obj.health < 1:
                     deathSound.play()
                     for drop in mobsData[obj.name]["Drops"]:
                         objects.append(
@@ -650,6 +677,25 @@ while run:
                             )
                         )
                     objects.remove(obj)
+
+            if pg.sprite.collide_mask(ships[ship], obj):
+                if obj.type == "Item":
+                    for slot in ships[ship].slots:
+                        if slot.name == obj.name:
+                            slot.count += obj.count
+                            break
+                        if slot.name is None:
+                            slot.name = obj.name
+                            slot.count = obj.count
+                            slot.data = {}
+                            break
+                    objects.remove(obj)
+                    continue
+
+                if obj.type == "Object":
+                    breakSound.play()
+                elif obj.type == "Mob":
+                    biteSound.play()
 
                 # elastic knockback
                 obj.health -= abs(ships[ship].vel) + ships[ship].damage
@@ -672,6 +718,34 @@ while run:
                 else:
                     obj.x_vel = -ships[ship].hrt_vel
                     obj.y_vel = -ships[ship].vrt_vel
+
+    # object slashing
+    is_slashing = False
+    if True in mouseDown:
+        for ship in ships:
+            if ships[ship].hotBarSlots[ships[ship].selectedSlot].name is None:
+                continue
+            item = ships[ship].hotBarSlots[ships[ship].selectedSlot]
+            item_name = item.name
+            if not item_name in toolNames:
+                continue
+            if not toolData[item_name]["Type"] == "Slash":
+                continue
+            is_slashing = True
+            for obj in objects:
+                if not obj.type in ("Mob", "Object"):
+                    continue
+                if obj.rect.collidepoint((mouseX + x_offset, mouseY + y_offset)):
+                    obj.health -= toolData[item_name]["Damage"]
+                    print("umm")
+                    item.data["Uses"] -= 1
+                    if item.data["Uses"] < 1:
+                        item.count -= 1
+                        item.data["Uses"] = toolData[item_name]["Uses"]
+                    if item.count < 1:
+                        item.name = None
+                        item.count = 0
+                        item.data = {}
 
     # collison for items i.e CRAFTING
     collidingItems = []
@@ -739,8 +813,6 @@ while run:
             objects.remove(item)
 
     # scrolling of the game window
-    mouseRelX, mouseRelY = pg.mouse.get_rel()
-    mouseDown = pg.mouse.get_pressed()
     if freeCam:
         if True in mouseDown:
             x_offset -= mouseRelX
@@ -857,14 +929,15 @@ while run:
 
     # summoning mobs
     if randint(0, fps * mobSummonChance) == 0:
+        mobName = choice(mob_image_names)
         objects.append(
             Mob(
                 randint(
                     ships[name].rect.centerx - window_width // 2,
                     ships[name].rect.centerx + window_width // 2,
                 ),
-                ships[name].rect.y + window_height / 2 * 1.1,
-                choice(mob_image_names),
+                randint(*mobsData[mobName]["Summon Range"]),
+                mobName,
                 True,
                 180,
                 True,
@@ -882,6 +955,9 @@ while run:
 
     for ship in ships:
         ships[ship].display(window, x_offset, y_offset)
+
+    if mouseDownStart is not None and is_slashing:
+        pg.draw.line(window, (255, 0, 0), mouseDownStart, (mouseX, mouseY), 10)
 
     # displaying pressure
     pg.draw.rect(window, (0, 0, 0), pressure_rect)

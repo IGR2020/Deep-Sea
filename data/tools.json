@@ -1,3 +1,4 @@
 {
-    "spear": {"Type": "Shot", "Damage": 90, "Speed": 10}
+    "spear": {"Type": "Shot", "Damage": 90, "Speed": 10},
+    "hoe": {"Type": "Slash", "Damage": 35, "Uses": 5}
 }

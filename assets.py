@@ -7,6 +7,7 @@ class Slot:
         self.rect = pg.Rect(x, y, width, height)
         self.name = name
         self.count = count
+        self.data = {}
 
     def reloadRect(self):
         if self.name is None:
@@ -47,7 +48,7 @@ assets["Selected Slot"] = pg.Surface((15, 15)).convert_alpha()
 assets["Selected Slot"].fill((200, 200, 200, 100))
 
 # music
-backgroundMusic = pg.mixer.Sound("assets\Sounds\Background.mp3")
+backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
 backgroundMusic.set_volume(0.3)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
@@ -75,6 +76,7 @@ toolData = loadJson("data/tools.json")
 toolNames = list(toolData.keys())
 defaultItemAngleCorrectionPos = 90
 defaultItemAngleCorrection = 45
+itemAngle = -45
 
 # creation of inventory slots
 inventoryImageName = "Brown Slots"
