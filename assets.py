@@ -47,8 +47,8 @@ assets["Selected Slot"] = pg.Surface((15, 15)).convert_alpha()
 assets["Selected Slot"].fill((200, 200, 200, 100))
 
 # music
-backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
-backgroundMusic.set_volume(0.7)
+backgroundMusic = pg.mixer.Sound("assets\Sounds\Background.mp3")
+backgroundMusic.set_volume(0.3)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
 correctSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
