@@ -35,5 +35,6 @@ Also dont try to pin it to task bar.
 + Item Throwing!
 + Objects Drop Items into Sea.
 
-## Deep Sea Monsters 1.0
+## Deep Sea Monsters Update-1.0
 + Improved Mob AI, Attack box & Bite Sound Effects.
++ Better Music.
