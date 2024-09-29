@@ -38,3 +38,4 @@ Also dont try to pin it to task bar.
 ## Deep Sea Monsters Update-1.0
 + Improved Mob AI, Attack box & Bite Sound Effects.
 + Better Music.
++ Hoe & Slashing.
