@@ -398,7 +398,7 @@ class ShotItem(Object):
 
 ships = {"IGR2020": Ship(100, 100, "Ship", slots, hotbarSlots, heldItem)}
 name = "IGR2020"
-objects = [Object(300, 200, "Crate"), Mob(400, 200, "Shark", True, 180, True)]
+objects = [Object(300, 200, "Crate"), Mob(400, 200, "Octopus", True, 180, True)]
 
 bubbles = []
 

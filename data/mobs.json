@@ -1,3 +1,4 @@
 {
-    "Shark": {"Drops": ["meat"], "Damage": 4, "Health": 100, "Count": [2, 5], "Summon Range": [200, 300]}
+    "Shark": {"Drops": ["meat"], "Damage": 4, "Health": 100, "Count": [2, 5], "Summon Range": [350, 450]},
+    "Octopus": {"Drops": ["fabric", "fur"], "Damage": 3, "Health": 90, "Count": [3, 4], "Summon Range": [200, 300]}
 }
