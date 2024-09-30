@@ -10,7 +10,7 @@ Make sure you have python 3 installed any version of python 3 should work, but t
 and also run the following command in **CMD** __"pip install pygame"__ (don't put the quotes), this will allow you to run the game, then just run the **main.py** file like an __.exe__ and thats it!
 Also dont try to pin it to task bar.
 
-## Exe
+## .EXE
 This is comming soon (end of 1.0), it will be in the "releases" section on the right of the page.
 
 ## Browser
