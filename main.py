@@ -58,11 +58,13 @@ class Ship:
                     try:
                         self.hotBarSlots[self.selectedSlot].data["Angle"]
                         self.hotBarSlots[self.selectedSlot].data["Uses"]
+                        self.hotBarSlots[self.selectedSlot].data["After Images"]
                     except:
                         self.hotBarSlots[self.selectedSlot].data["Angle"] = 0
                         self.hotBarSlots[self.selectedSlot].data["Uses"] = toolData[
                             self.hotBarSlots[self.selectedSlot].name
                         ]["Uses"]
+                        self.hotBarSlots[self.selectedSlot].data["After Images"] = []
                     image = pg.transform.rotate(
                         assets[self.hotBarSlots[self.selectedSlot].name],
                         self.hotBarSlots[self.selectedSlot].data["Angle"],
@@ -461,8 +463,8 @@ while run:
             if event.key == pg.K_f:
                 if freeCam:
                     x_offset, y_offset = (
-                        ship.rect.x - window_width / 2,
-                        ship.rect.y - window_height / 2,
+                        ships[name].rect.x - window_width / 2,
+                        ships[name].rect.y - window_height / 2,
                     )
                 freeCam = not freeCam
 
@@ -730,6 +732,9 @@ while run:
             if not toolData[item_name]["Type"] == "Slash":
                 continue
             is_slashing = True
+            item.data["After Images"].append((mouseX, mouseY))
+            if len(item.data["After Images"]) > 15:
+                item.data["After Images"].pop(0)
             for obj in objects:
                 if not obj.type in ("Mob", "Object"):
                     continue
@@ -737,12 +742,25 @@ while run:
                     obj.health -= toolData[item_name]["Damage"]
                     item.data["Uses"] -= 1
                     if item.data["Uses"] < 1:
+                        itemBreakSound.play()
                         item.count -= 1
                         item.data["Uses"] = toolData[item_name]["Uses"]
                     if item.count < 1:
                         item.name = None
                         item.count = 0
                         item.data = {}
+    # reseting item trail
+    else:
+        for ship in ships:
+            if ships[ship].hotBarSlots[ships[ship].selectedSlot].name is None:
+                continue
+            item = ships[ship].hotBarSlots[ships[ship].selectedSlot]
+            item_name = item.name
+            if not item_name in toolNames:
+                continue
+            if not toolData[item_name]["Type"] == "Slash":
+                continue
+            item.data["After Images"] = []
 
     # collison for items i.e CRAFTING
     collidingItems = []
@@ -953,8 +971,9 @@ while run:
     for ship in ships:
         ships[ship].display(window, x_offset, y_offset)
 
-    if mouseDownStart is not None and is_slashing:
-        pg.draw.line(window, (255, 0, 0), mouseDownStart, (mouseX, mouseY), 10)
+    if True in mouseDown and is_slashing:
+        for pos in ships[name].hotBarSlots[ships[name].selectedSlot].data["After Images"]:
+            window.blit(assets[ships[name].hotBarSlots[ships[name].selectedSlot].name], pos)
 
     # displaying pressure
     pg.draw.rect(window, (0, 0, 0), pressure_rect)
