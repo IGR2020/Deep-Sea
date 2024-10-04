@@ -47,3 +47,4 @@ This is also comming soon (probably by 10/9/24), this will be on the itch.io the
 + Better Music.
 + Hoe & Slashing.
 + Octopus!
++ Value Mod Events & Scale Based Item Drops.
