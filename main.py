@@ -25,9 +25,9 @@ class Ship:
     pressure_limit = 2_000
     health = 200
     max_health = health
-    slots = []
-    hotBarSlots = []
-    heldItem = None
+    slots: list[Slot] = []
+    hotBarSlots: list[Slot] = []
+    heldItem: Slot = None
     selectedSlot = 0
     totalHotBarSlots = 9  # 8 if indexing
     damage = 0
@@ -134,7 +134,7 @@ class Ship:
         self.vel = max(min(self.vel, self.speed), -self.speed)
 
 
-class Object(pg.sprite.Sprite):
+class Object:
     x_vel, y_vel = 0, 0
     angle = 0
 
@@ -149,7 +149,7 @@ class Object(pg.sprite.Sprite):
         self.rotatedImage = pg.transform.rotate(self.scaledImage, self.angle)
         self.mask = pg.mask.from_surface(self.rotatedImage)
         if type == "Object":
-            self.health = itemsData[self.name]["Health"]
+            self.health = round(itemsData[self.name]["Health"] * self.scale)
         self.type = type
         self.sink_vel = randint(10, 30) * 0.1
 
@@ -247,7 +247,7 @@ class Item(Object):
         self.totalReload()
 
     def script(self):
-        if eventType is not None and self.rect.y < sky_start:
+        if eventType is not None and self.rect.y < sky_start and eventOccurring:
             if eventType["Type"] == "Rain":
                 if eventType["Rain"] == "Effect":
                     if eventType["Effect"] == "Smelt":
@@ -443,7 +443,10 @@ debrisSummonChance = 10
 mouseDownStart = None
 is_slashing = False
 
-collidingItems = []
+collidingItems: object = []
+
+# for Value Mod events
+original_value = None
 
 backgroundMusic.play(-1)
 
@@ -607,12 +610,14 @@ while run:
                 upgradeID = None
 
     # extracting mouse events
-    mouseX, mouseY = pg.mouse.get_pos()
+    mousePos = pg.mouse.get_pos()
+    mouseX: int = mousePos[0]
+    mouseY: int = mousePos[1]
     mouseRelX, mouseRelY = pg.mouse.get_rel()
     mouseDown = pg.mouse.get_pressed()
 
     # summoning debris
-    if randint(0, fps * debrisSummonChance) == 0:
+    if randint(0, round(fps * debrisSummonChance)) == 0:
         objects.append(
             Object(
                 randint(
@@ -652,6 +657,7 @@ while run:
                         break
                 continue
 
+            # removing of dead objects
             if obj.type == "Object":
                 if obj.health < 1:
                     for drop in itemsData[obj.name]["Drops"]:
@@ -660,7 +666,12 @@ while run:
                                 obj.rect.x,
                                 obj.rect.y,
                                 drop,
-                                randint(*itemsData[obj.name]["Count"]),
+                                randint(
+                                    round(itemsData[obj.name]["Count"][0] * obj.scale),
+                                    round(
+                                        itemsData[obj.name]["Count"][1] * obj.scale,
+                                    ),
+                                ),
                             )
                         )
                     objects.remove(obj)
@@ -678,7 +689,9 @@ while run:
                         )
                     objects.remove(obj)
 
+            # collision
             if pg.sprite.collide_mask(ships[ship], obj):
+                # item
                 if obj.type == "Item":
                     for slot in ships[ship].slots:
                         if slot.name == obj.name:
@@ -692,6 +705,7 @@ while run:
                     objects.remove(obj)
                     continue
 
+                # mobs & objects
                 if obj.type == "Object":
                     breakSound.play()
                 elif obj.type == "Mob":
@@ -705,7 +719,9 @@ while run:
                     if ships[ship].mask.overlap_area(obj.attackMask, (xo, yo)):
                         ships[ship].health -= mobsData[obj.name]["Damage"]
                 else:
-                    ships[ship].health -= itemsData[obj.name]["Damage"]
+                    ships[ship].health -= round(
+                        itemsData[obj.name]["Damage"] * obj.scale
+                    )
                 if ships[ship].vel > 0:
                     ships[ship].vel += 1
                 else:
@@ -917,6 +933,9 @@ while run:
             else:
                 eventType["Summon Range Start"] = window_width // 2
                 eventType["Summon Range End"] = window_width // 2
+        if eventType["Type"] == "Value Mod":
+            exec(f"original_value = {eventType["Value"]}")
+            exec(f"{eventType["Value"]} {eventType["Operator"]} {eventType["Change"]}")
 
     # event script
     if eventOccurring and eventType is not None:
@@ -939,6 +958,8 @@ while run:
     # stopping event
     if eventOccurring and eventType is not None:
         if time() - timeSinceLastEvent > eventType["Duration"]:
+            if eventType["Type"] == "Value Mod":
+                exec(f"{eventType["Value"]} = original_value")
             eventOccurring = False
             eventType = None
 
@@ -972,8 +993,12 @@ while run:
         ships[ship].display(window, x_offset, y_offset)
 
     if True in mouseDown and is_slashing:
-        for pos in ships[name].hotBarSlots[ships[name].selectedSlot].data["After Images"]:
-            window.blit(assets[ships[name].hotBarSlots[ships[name].selectedSlot].name], pos)
+        for pos in (
+            ships[name].hotBarSlots[ships[name].selectedSlot].data["After Images"]
+        ):
+            window.blit(
+                assets[ships[name].hotBarSlots[ships[name].selectedSlot].name], pos
+            )
 
     # displaying pressure
     pg.draw.rect(window, (0, 0, 0), pressure_rect)

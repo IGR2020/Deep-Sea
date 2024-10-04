@@ -1,4 +1,16 @@
 A note on the json files in this directory
 
-1 in crafts.json
-    make sure that if 2 recipes don't have the same components, as of 25-september-2024
+in crafts.json
+    make sure that if 2 recipes don't have the same components,
+     as of 25-september-2024.
+
+in items.json
+    most things dont have a random drop rate since the drops are
+    multiplied by the size of the object, but specifiy the range
+    in a list with 2 ints, if you want a fixed drop rate then put
+    the same number twice in the list. Also health and damage is
+    also scaled.
+
+in event.json
+    The direction variable reffers to the amount rain moves in the
+    x direction, this paramater is not mandatory.

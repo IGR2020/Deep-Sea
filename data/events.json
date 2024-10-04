@@ -1,4 +1,5 @@
 [
     {"Duration": 30, "Type": "Rain", "Rain": "Drop", "Drop": "Asteroid", "Summon": "Asteroid", "Summon Speed": 5},
-    {"Duration": 30, "Type": "Rain", "Rain": "Effect", "Effect": "Smelt", "Summon": "Lava Drops", "Summon Speed": 0.04}
+    {"Duration": 30, "Type": "Rain", "Rain": "Effect", "Effect": "Smelt", "Summon": "Lava Drops", "Summon Speed": 0.04},
+    {"Duration": 20, "Type": "Value Mod", "Value": "debrisSummonChance", "Operator": "=", "Change": "0.5"}
 ]

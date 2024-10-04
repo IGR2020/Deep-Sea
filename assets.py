@@ -57,6 +57,7 @@ craftSound = pg.mixer.Sound("assets/Sounds/Craft.mp3")
 deathSound = pg.mixer.Sound("assets/Sounds/Death.mp3")
 biteSound = pg.mixer.Sound("assets/Sounds/Bite.mp3")
 biteSound.set_volume(0.3)
+itemBreakSound = pg.mixer.Sound("assets/Sounds/Break.mp3")
 
 
 # defines location of font for Text object
