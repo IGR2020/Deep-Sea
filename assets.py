@@ -35,29 +35,25 @@ assets["Sky"].fill((51, 153, 255))
 object_image_names = load_assets("assets/Objects")
 assets.update(object_image_names)
 object_image_names = list(object_image_names.keys())
-assets.update(load_assets("assets/items", scale=3, scaleifsize=(16, 16)))
+assets.update(load_assets("assets/Items", scale=3, scaleifsize=(16, 16)))
 assets["Bubble"] = pg.transform.scale_by(assets["Bubble"], 2)
 assets.update(load_assets("assets/Events"))
 mob_image_names = load_assets("assets/Mobs", scale=5, getSubDirsAsList=True)
 assets.update(mob_image_names)
-mob_image_names = list(mob_image_names.keys())
-for key in mob_image_names:
-    if "Attackbox" in  key:
-        mob_image_names.remove(key)
 assets["Selected Slot"] = pg.Surface((15, 15)).convert_alpha()
 assets["Selected Slot"].fill((200, 200, 200, 100))
 
 # music
-backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.mp3")
+backgroundMusic = pg.mixer.Sound("assets/Sounds/Background.ogg")
 backgroundMusic.set_volume(0.3)
 breakSound = pg.mixer.Sound("assets/Sounds/Break.ogg")
 breakSound.set_volume(3)
-correctSound = pg.mixer.Sound("assets/Sounds/Correct.mp3")
-craftSound = pg.mixer.Sound("assets/Sounds/Craft.mp3")
-deathSound = pg.mixer.Sound("assets/Sounds/Death.mp3")
-biteSound = pg.mixer.Sound("assets/Sounds/Bite.mp3")
+correctSound = pg.mixer.Sound("assets/Sounds/Correct.ogg")
+craftSound = pg.mixer.Sound("assets/Sounds/Craft.ogg")
+deathSound = pg.mixer.Sound("assets/Sounds/Death.ogg")
+biteSound = pg.mixer.Sound("assets/Sounds/Bite.ogg")
 biteSound.set_volume(0.3)
-itemBreakSound = pg.mixer.Sound("assets/Sounds/Break.mp3")
+itemBreakSound = pg.mixer.Sound("assets/Sounds/ItemBreak.ogg")
 
 
 # defines location of font for Text object
@@ -71,6 +67,7 @@ events = loadJson("data/events.json")
 eventsCopy = loadJson("data/events.json") # a copy of the events to reset it after an event is over
 smelts = loadJson("data/smelts.json")
 mobsData = loadJson("data/mobs.json")
+mob_image_names = list(mobsData.keys())
 crafts = loadJson("data/crafts.json")
 craftTrigger = "glue"
 toolData = loadJson("data/tools.json")

@@ -6,6 +6,7 @@ from time import time
 from assets import *
 from menu import kill
 from GUI import Text
+import asyncio
 
 sky_start = -150
 
@@ -404,7 +405,6 @@ objects = [Object(300, 200, "Crate"), Mob(400, 200, "Octopus", True, 180, True)]
 
 bubbles = []
 
-scroll_area = 200
 x_offset, y_offset = 0, 0
 
 pressure = 0
@@ -448,632 +448,649 @@ collidingItems: object = []
 # for Value Mod events
 original_value = None
 
-backgroundMusic.play(-1)
+mouseX = 0
+mouseY = 0
 
-while run:
 
-    clock.tick(fps)
+async def main():
 
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            run = False
+    # getting all global variables
+    global run, freeCam, inventoryView, inventoryShift , pressure, bubbles
+    global inventoryX, inventoryY, objects, ships, eventOccurring, eventType
+    global events, eventsCopy, eventGap, eventChance, timeSinceLastEvent 
+    global assets, upgradeImageFloat, upgradeID, upgradeFound, upgradeRect
+    global upgrades, mobsData, itemsData, breakSound, itemBreakSound, biteSound
+    global is_slashing, collidingItems, backgroundMusic, mouseX, mouseY
 
-        if event.type == pg.KEYDOWN:
+    backgroundMusic.play(-1)
+    
+    while run:
+        await asyncio.sleep(0)
 
-            if event.key == pg.K_e:
-                inventoryView = not inventoryView
+        clock.tick(fps)
 
-            if event.key == pg.K_f:
-                if freeCam:
-                    x_offset, y_offset = (
-                        ships[name].rect.x - window_width / 2,
-                        ships[name].rect.y - window_height / 2,
-                    )
-                freeCam = not freeCam
 
-        if event.type == pg.MOUSEWHEEL:
-            if ships[name].selectedSlot + event.y > 8:
-                ships[name].selectedSlot = 0
-            elif ships[name].selectedSlot + event.y < 0:
-                ships[name].selectedSlot = ships[name].totalHotBarSlots - 1
-            else:
-                ships[name].selectedSlot = min(
-                    ships[name].totalHotBarSlots - 1, ships[name].selectedSlot + event.y
-                )
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                run = False
 
-        if event.type == pg.MOUSEBUTTONDOWN:
-            mouseDownStart = mouseX, mouseY
+            if event.type == pg.KEYDOWN:
 
-        if event.type == pg.MOUSEBUTTONUP:
-            mouseDownStart = None
-            if event.button in (2, 4, 5):
-                continue
-            if inventoryView:
-                # inventory management
-                slotFound = False
-                for slot in ships[name].slots:
-                    if slot.rect.collidepoint(mouseX, mouseY):
-                        if (
-                            slot.name == ships[name].heldItem.name
-                            and ships[name].heldItem.name is not None
-                        ):
-                            slot.count += ships[name].heldItem.count
-                            ships[name].heldItem.name = None
-                            ships[name].heldItem.count = None
-                        else:
-                            ships[name].heldItem.name, slot.name = (
-                                slot.name,
-                                ships[name].heldItem.name,
-                            )
-                            ships[name].heldItem.count, slot.count = (
-                                slot.count,
-                                ships[name].heldItem.count,
-                            )
-                        slotFound = True
-                for slot in ships[name].hotBarSlots:
-                    if slot.rect.collidepoint(mouseX, mouseY):
-                        if (
-                            slot.name == ships[name].heldItem.name
-                            and ships[name].heldItem.name is not None
-                        ):
-                            slot.count += ships[name].heldItem.count
-                            ships[name].heldItem.name = None
-                            ships[name].heldItem.count = None
-                        else:
-                            ships[name].heldItem.name, slot.name = (
-                                slot.name,
-                                ships[name].heldItem.name,
-                            )
-                            ships[name].heldItem.count, slot.count = (
-                                slot.count,
-                                ships[name].heldItem.count,
-                            )
-                        slotFound = True
-                ships[name].heldItem.reloadRect()
+                if event.key == pg.K_e:
+                    inventoryView = not inventoryView
 
-                if not slotFound and ships[name].heldItem.name is not None:
-                    objects.append(
-                        Item(
-                            mouseX + x_offset,
-                            mouseY + y_offset,
-                            ships[name].heldItem.name,
-                            ships[name].heldItem.count,
+                if event.key == pg.K_f:
+                    if freeCam:
+                        x_offset, y_offset = (
+                            ships[name].rect.x - window_width / 2,
+                            ships[name].rect.y - window_height / 2,
                         )
+                    freeCam = not freeCam
+
+            if event.type == pg.MOUSEWHEEL:
+                if ships[name].selectedSlot + event.y > 8:
+                    ships[name].selectedSlot = 0
+                elif ships[name].selectedSlot + event.y < 0:
+                    ships[name].selectedSlot = ships[name].totalHotBarSlots - 1
+                else:
+                    ships[name].selectedSlot = min(
+                        ships[name].totalHotBarSlots - 1, ships[name].selectedSlot + event.y
                     )
-                    ships[name].heldItem.name = None
-                    ships[name].heldItem.count = 0
-                elif (
-                    not slotFound
-                    and ships[name].heldItem.name is None
-                    and ships[name].hotBarSlots[ships[name].selectedSlot].name
-                    is not None
-                ):
-                    if (
-                        ships[name].hotBarSlots[ships[name].selectedSlot].name
-                        in toolNames
-                    ):
-                        tool = toolData[
-                            ships[name].hotBarSlots[ships[name].selectedSlot].name
-                        ]
-                        if tool["Type"] == "Shot":
-                            dx, dy = (
-                                ships[name].rect.centerx - (mouseX + x_offset),
-                                (mouseY + y_offset) - ships[name].rect.centery,
+
+
+            if event.type == pg.MOUSEBUTTONUP:
+                if event.button in (2, 4, 5):
+                    continue
+                if inventoryView:
+                    # inventory management
+                    slotFound = False
+                    for slot in ships[name].slots:
+                        if slot.rect.collidepoint(mouseX, mouseY):
+                            if (
+                                slot.name == ships[name].heldItem.name
+                                and ships[name].heldItem.name is not None
+                            ):
+                                slot.count += ships[name].heldItem.count
+                                ships[name].heldItem.name = None
+                                ships[name].heldItem.count = None
+                            else:
+                                ships[name].heldItem.name, slot.name = (
+                                    slot.name,
+                                    ships[name].heldItem.name,
+                                )
+                                ships[name].heldItem.count, slot.count = (
+                                    slot.count,
+                                    ships[name].heldItem.count,
+                                )
+                            slotFound = True
+                    for slot in ships[name].hotBarSlots:
+                        if slot.rect.collidepoint(mouseX, mouseY):
+                            if (
+                                slot.name == ships[name].heldItem.name
+                                and ships[name].heldItem.name is not None
+                            ):
+                                slot.count += ships[name].heldItem.count
+                                ships[name].heldItem.name = None
+                                ships[name].heldItem.count = None
+                            else:
+                                ships[name].heldItem.name, slot.name = (
+                                    slot.name,
+                                    ships[name].heldItem.name,
+                                )
+                                ships[name].heldItem.count, slot.count = (
+                                    slot.count,
+                                    ships[name].heldItem.count,
+                                )
+                            slotFound = True
+                    ships[name].heldItem.reloadRect()
+
+                    if not slotFound and ships[name].heldItem.name is not None:
+                        objects.append(
+                            Item(
+                                mouseX + x_offset,
+                                mouseY + y_offset,
+                                ships[name].heldItem.name,
+                                ships[name].heldItem.count,
                             )
-                            angle = (
-                                math.degrees(math.atan2(dy, dx))
-                            ) + defaultItemAngleCorrectionPos
-                            print(angle)
+                        )
+                        ships[name].heldItem.name = None
+                        ships[name].heldItem.count = 0
+                    elif (
+                        not slotFound
+                        and ships[name].heldItem.name is None
+                        and ships[name].hotBarSlots[ships[name].selectedSlot].name
+                        is not None
+                    ):
+                        if (
+                            ships[name].hotBarSlots[ships[name].selectedSlot].name
+                            in toolNames
+                        ):
+                            tool = toolData[
+                                ships[name].hotBarSlots[ships[name].selectedSlot].name
+                            ]
+                            if tool["Type"] == "Shot":
+                                dx, dy = (
+                                    ships[name].rect.centerx - (mouseX + x_offset),
+                                    (mouseY + y_offset) - ships[name].rect.centery,
+                                )
+                                angle = (
+                                    math.degrees(math.atan2(dy, dx))
+                                ) + defaultItemAngleCorrectionPos
+                                print(angle)
+                                objects.append(
+                                    ShotItem(
+                                        ships[name].rect.centerx,
+                                        ships[name].rect.centery,
+                                        ships[name]
+                                        .hotBarSlots[ships[name].selectedSlot]
+                                        .name,
+                                        angle,
+                                        defaultItemAngleCorrection,
+                                    )
+                                )
+                                ships[name].hotBarSlots[ships[name].selectedSlot].count -= 1
+                    slotFound = False
+
+                # checking for upgrading
+                if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
+                    correctSound.play()
+
+                    upgrade = upgrades[upgradeID]
+                    for cost in upgrade["Cost"]:
+                        for slot in (*ships[name].slots, *ships[name].hotBarSlots):
+                            if cost["Name"] == slot.name and cost["Count"] <= slot.count:
+                                slot.count -= cost["Count"]
+                                if slot.count < 1:
+                                    slot.name = None
+                                    slot.count = 0
+                                break
+
+                    # upgrading the ship on basis of type
+                    if upgrade["Type"] == "Depth":
+                        ships[name].pressure_limit += upgrade["Change"]
+                    elif upgrade["Type"] == "Health":
+                        ships[name].max_health += upgrade["Change"]
+                        ships[name].health += upgrade["Change"]
+                    elif upgrade["Type"] == "Damage":
+                        ships[name].damage += upgrade["Change"]
+                    elif upgrade["Type"] == "Speed":
+                        ships[name].speed += upgrade["Change"]
+                    elif upgrade["Type"] == "Acceleration":
+                        ships[name].acceleration += upgrade["Change"]
+
+                    upgrades.remove(upgrade)
+                    upgradeFound = False
+                    upgradeID = None
+
+        # extracting mouse events
+        mousePos = pg.mouse.get_pos()
+        mouseX = mousePos[0]
+        mouseY = mousePos[1]
+        mouseRelX, mouseRelY = pg.mouse.get_rel()
+        mouseDown = pg.mouse.get_pressed()
+
+        # summoning debris
+        if randint(0, round(fps * debrisSummonChance)) == 0:
+            objects.append(
+                Object(
+                    randint(
+                        ships[name].rect.centerx - window_width // 2,
+                        ships[name].rect.centerx + window_width // 2,
+                    ),
+                    sky_start - 200,
+                    choice(object_image_names),
+                )
+            )
+
+        # OBJECT HANDLER
+        ships[name].script()
+        for ship in ships:
+            for obj in objects:
+                obj.script()
+                if obj.type == "Rain":
+                    if obj.isInWater:
+                        if obj.drop:
+                            objects.append(Object.loadFromRain(obj))
+                        objects.remove(obj)
+                    continue
+                if obj.type == "ShotItem":
+                    if obj.rect.y > ships[name].pressure_limit:
+                        objects.remove(obj)
+                        continue
+                    for obj2 in objects:
+                        if not obj2.type in ("Object", "Mob"):
+                            continue
+                        if pg.sprite.collide_mask(obj, obj2):
+                            obj2.health -= obj.damage
+                            obj2.x_vel = -obj.hrt_vel * 2
+                            obj2.y_vel = -obj.vrt_vel * 2
+                            objects.append(Item(obj.rect.x, obj.rect.y, obj.name, 1))
+                            objects[-1].angle = obj.angle
+                            objects.remove(obj)
+                            break
+                    continue
+
+                # removing of dead objects
+                if obj.type == "Object":
+                    if obj.health < 1:
+                        for drop in itemsData[obj.name]["Drops"]:
                             objects.append(
-                                ShotItem(
-                                    ships[name].rect.centerx,
-                                    ships[name].rect.centery,
-                                    ships[name]
-                                    .hotBarSlots[ships[name].selectedSlot]
-                                    .name,
-                                    angle,
-                                    defaultItemAngleCorrection,
+                                Item(
+                                    obj.rect.x,
+                                    obj.rect.y,
+                                    drop,
+                                    randint(
+                                        round(itemsData[obj.name]["Count"][0] * obj.scale),
+                                        round(
+                                            itemsData[obj.name]["Count"][1] * obj.scale,
+                                        ),
+                                    ),
                                 )
                             )
-                            ships[name].hotBarSlots[ships[name].selectedSlot].count -= 1
-                slotFound = False
-
-            # checking for upgrading
-            if upgradeRect.collidepoint(mouseX, mouseY) and upgradeFound:
-                correctSound.play()
-
-                upgrade = upgrades[upgradeID]
-                for cost in upgrade["Cost"]:
-                    for slot in (*ships[name].slots, *ships[name].hotBarSlots):
-                        if cost["Name"] == slot.name and cost["Count"] <= slot.count:
-                            slot.count -= cost["Count"]
-                            if slot.count < 1:
-                                slot.name = None
-                                slot.count = 0
-                            break
-
-                # upgrading the ship on basis of type
-                if upgrade["Type"] == "Depth":
-                    ships[name].pressure_limit += upgrade["Change"]
-                elif upgrade["Type"] == "Health":
-                    ships[name].max_health += upgrade["Change"]
-                    ships[name].health += upgrade["Change"]
-                elif upgrade["Type"] == "Damage":
-                    ships[name].damage += upgrade["Change"]
-                elif upgrade["Type"] == "Speed":
-                    ships[name].speed += upgrade["Change"]
-                elif upgrade["Type"] == "Acceleration":
-                    ships[name].acceleration += upgrade["Change"]
-
-                upgrades.remove(upgrade)
-                upgradeFound = False
-                upgradeID = None
-
-    # extracting mouse events
-    mousePos = pg.mouse.get_pos()
-    mouseX: int = mousePos[0]
-    mouseY: int = mousePos[1]
-    mouseRelX, mouseRelY = pg.mouse.get_rel()
-    mouseDown = pg.mouse.get_pressed()
-
-    # summoning debris
-    if randint(0, round(fps * debrisSummonChance)) == 0:
-        objects.append(
-            Object(
-                randint(
-                    ships[name].rect.centerx - window_width // 2,
-                    ships[name].rect.centerx + window_width // 2,
-                ),
-                sky_start - 200,
-                choice(object_image_names),
-            )
-        )
-
-    # OBJECT HANDLER
-    ships[name].script()
-    for ship in ships:
-        for obj in objects:
-            obj.script()
-            if obj.type == "Rain":
-                if obj.isInWater:
-                    if obj.drop:
-                        objects.append(Object.loadFromRain(obj))
-                    objects.remove(obj)
-                continue
-            if obj.type == "ShotItem":
-                if obj.rect.y > ships[name].pressure_limit:
-                    objects.remove(obj)
-                    continue
-                for obj2 in objects:
-                    if not obj2.type in ("Object", "Mob"):
-                        continue
-                    if pg.sprite.collide_mask(obj, obj2):
-                        obj2.health -= obj.damage
-                        obj2.x_vel = -obj.hrt_vel * 2
-                        obj2.y_vel = -obj.vrt_vel * 2
-                        objects.append(Item(obj.rect.x, obj.rect.y, obj.name, 1))
-                        objects[-1].angle = obj.angle
                         objects.remove(obj)
-                        break
-                continue
-
-            # removing of dead objects
-            if obj.type == "Object":
-                if obj.health < 1:
-                    for drop in itemsData[obj.name]["Drops"]:
-                        objects.append(
-                            Item(
-                                obj.rect.x,
-                                obj.rect.y,
-                                drop,
-                                randint(
-                                    round(itemsData[obj.name]["Count"][0] * obj.scale),
-                                    round(
-                                        itemsData[obj.name]["Count"][1] * obj.scale,
-                                    ),
-                                ),
-                            )
-                        )
-                    objects.remove(obj)
-            elif obj.type == "Mob":
-                if obj.health < 1:
-                    deathSound.play()
-                    for drop in mobsData[obj.name]["Drops"]:
-                        objects.append(
-                            Item(
-                                obj.rect.x,
-                                obj.rect.y,
-                                drop,
-                                randint(*mobsData[obj.name]["Count"]),
-                            )
-                        )
-                    objects.remove(obj)
-
-            # collision
-            if pg.sprite.collide_mask(ships[ship], obj):
-                # item
-                if obj.type == "Item":
-                    for slot in ships[ship].slots:
-                        if slot.name == obj.name:
-                            slot.count += obj.count
-                            break
-                        if slot.name is None:
-                            slot.name = obj.name
-                            slot.count = obj.count
-                            slot.data = {}
-                            break
-                    objects.remove(obj)
-                    continue
-
-                # mobs & objects
-                if obj.type == "Object":
-                    breakSound.play()
                 elif obj.type == "Mob":
-                    biteSound.play()
+                    if obj.health < 1:
+                        deathSound.play()
+                        for drop in mobsData[obj.name]["Drops"]:
+                            objects.append(
+                                Item(
+                                    obj.rect.x,
+                                    obj.rect.y,
+                                    drop,
+                                    randint(*mobsData[obj.name]["Count"]),
+                                )
+                            )
+                        objects.remove(obj)
 
-                # elastic knockback
-                obj.health -= abs(ships[ship].vel) + ships[ship].damage
-                if obj.type == "Mob":
-                    xo = -ships[ship].rect[0] + obj.rect[0]
-                    yo = -ships[ship].rect[1] + obj.rect[1]
-                    if ships[ship].mask.overlap_area(obj.attackMask, (xo, yo)):
-                        ships[ship].health -= mobsData[obj.name]["Damage"]
-                else:
-                    ships[ship].health -= round(
-                        itemsData[obj.name]["Damage"] * obj.scale
-                    )
-                if ships[ship].vel > 0:
-                    ships[ship].vel += 1
-                else:
-                    ships[ship].vel -= 1
-                ships[ship].vel = -ships[ship].vel
-                ships[ship].disabled = True
-                ships[ship].time_since_disabled = time()
-                if obj.type == "Mob":
-                    obj.vel = -obj.vel
-                else:
-                    obj.x_vel = -ships[ship].hrt_vel
-                    obj.y_vel = -ships[ship].vrt_vel
+                # collision
+                if pg.sprite.collide_mask(ships[ship], obj):
+                    # item
+                    if obj.type == "Item":
+                        for slot in ships[ship].slots:
+                            if slot.name == obj.name:
+                                slot.count += obj.count
+                                break
+                            if slot.name is None:
+                                slot.name = obj.name
+                                slot.count = obj.count
+                                slot.data = {}
+                                break
+                        objects.remove(obj)
+                        continue
 
-    # object slashing
-    is_slashing = False
-    if True in mouseDown:
-        for ship in ships:
-            if ships[ship].hotBarSlots[ships[ship].selectedSlot].name is None:
-                continue
-            item = ships[ship].hotBarSlots[ships[ship].selectedSlot]
-            item_name = item.name
-            if not item_name in toolNames:
-                continue
-            if not toolData[item_name]["Type"] == "Slash":
-                continue
-            is_slashing = True
-            item.data["After Images"].append((mouseX, mouseY))
-            if len(item.data["After Images"]) > 15:
-                item.data["After Images"].pop(0)
-            for obj in objects:
-                if not obj.type in ("Mob", "Object"):
+                    # mobs & objects
+                    if obj.type == "Object":
+                        breakSound.play()
+                    elif obj.type == "Mob":
+                        biteSound.play()
+
+                    # elastic knockback
+                    obj.health -= abs(ships[ship].vel) + ships[ship].damage
+                    if obj.type == "Mob":
+                        xo = -ships[ship].rect[0] + obj.rect[0]
+                        yo = -ships[ship].rect[1] + obj.rect[1]
+                        if ships[ship].mask.overlap_area(obj.attackMask, (xo, yo)):
+                            ships[ship].health -= mobsData[obj.name]["Damage"]
+                    else:
+                        ships[ship].health -= round(
+                            itemsData[obj.name]["Damage"] * obj.scale
+                        )
+                    if ships[ship].vel > 0:
+                        ships[ship].vel += 1
+                    else:
+                        ships[ship].vel -= 1
+                    ships[ship].vel = -ships[ship].vel
+                    ships[ship].disabled = True
+                    ships[ship].time_since_disabled = time()
+                    if obj.type == "Mob":
+                        obj.vel = -obj.vel
+                    else:
+                        obj.x_vel = -ships[ship].hrt_vel
+                        obj.y_vel = -ships[ship].vrt_vel
+
+        # object slashing
+        is_slashing = False
+        if True in mouseDown:
+            for ship in ships:
+                if ships[ship].hotBarSlots[ships[ship].selectedSlot].name is None:
                     continue
-                if obj.rect.collidepoint((mouseX + x_offset, mouseY + y_offset)):
-                    obj.health -= toolData[item_name]["Damage"]
-                    item.data["Uses"] -= 1
-                    if item.data["Uses"] < 1:
-                        itemBreakSound.play()
-                        item.count -= 1
-                        item.data["Uses"] = toolData[item_name]["Uses"]
-                    if item.count < 1:
-                        item.name = None
-                        item.count = 0
-                        item.data = {}
-    # reseting item trail
-    else:
-        for ship in ships:
-            if ships[ship].hotBarSlots[ships[ship].selectedSlot].name is None:
-                continue
-            item = ships[ship].hotBarSlots[ships[ship].selectedSlot]
-            item_name = item.name
-            if not item_name in toolNames:
-                continue
-            if not toolData[item_name]["Type"] == "Slash":
-                continue
-            item.data["After Images"] = []
+                item = ships[ship].hotBarSlots[ships[ship].selectedSlot]
+                item_name = item.name
+                if not item_name in toolNames:
+                    continue
+                if not toolData[item_name]["Type"] == "Slash":
+                    continue
+                is_slashing = True
+                item.data["After Images"].append((mouseX, mouseY))
+                if len(item.data["After Images"]) > 15:
+                    item.data["After Images"].pop(0)
+                for obj in objects:
+                    if not obj.type in ("Mob", "Object"):
+                        continue
+                    if obj.rect.collidepoint((mouseX + x_offset, mouseY + y_offset)):
+                        obj.health -= toolData[item_name]["Damage"]
+                        item.data["Uses"] -= 1
+                        if item.data["Uses"] < 1:
+                            itemBreakSound.play()
+                            item.count -= 1
+                            item.data["Uses"] = toolData[item_name]["Uses"]
+                        if item.count < 1:
+                            item.name = None
+                            item.count = 0
+                            item.data = {}
+        # reseting item trail
+        else:
+            for ship in ships:
+                if ships[ship].hotBarSlots[ships[ship].selectedSlot].name is None:
+                    continue
+                item = ships[ship].hotBarSlots[ships[ship].selectedSlot]
+                item_name = item.name
+                if not item_name in toolNames:
+                    continue
+                if not toolData[item_name]["Type"] == "Slash":
+                    continue
+                item.data["After Images"] = []
 
-    # collison for items i.e CRAFTING
-    collidingItems = []
-    for item1 in objects:
-        if item1.type != "Item":
-            continue
-
-        for item2 in objects:
-            if item2.type != "Item":
+        # collison for items i.e CRAFTING
+        collidingItems = []
+        for item1 in objects:
+            if item1.type != "Item":
                 continue
 
-            if id(item1) == id(item2):
-                continue
+            for item2 in objects:
+                if item2.type != "Item":
+                    continue
 
-            if item1.rect.colliderect(item2.rect):
+                if id(item1) == id(item2):
+                    continue
 
-                for collisionGroup in collidingItems:
-                    if item2 in collisionGroup and item1 in collisionGroup:
-                        break
-                    if item1 in collisionGroup:
-                        collisionGroup.append(item2)
-                        break
-                    if item2 in collisionGroup:
-                        collisionGroup.append(item1)
+                if item1.rect.colliderect(item2.rect):
+
+                    for collisionGroup in collidingItems:
+                        if item2 in collisionGroup and item1 in collisionGroup:
+                            break
+                        if item1 in collisionGroup:
+                            collisionGroup.append(item2)
+                            break
+                        if item2 in collisionGroup:
+                            collisionGroup.append(item1)
+                            break
+                    else:
+                        collidingItems.append([item1, item2])
+        for collisionGroup in collidingItems:
+            foundRecipe = True
+            for craft in crafts:
+                for craftItem in craft["Components"]:
+                    for item in collisionGroup:
+                        if (
+                            item.name == craftItem["Name"]
+                            and item.count >= craftItem["Count"]
+                        ):
+                            break
+                    else:
                         break
                 else:
-                    collidingItems.append([item1, item2])
-    for collisionGroup in collidingItems:
-        foundRecipe = True
-        for craft in crafts:
+                    break
+            else:
+                foundRecipe = False
+            if not foundRecipe:
+                continue
+            if not True in [item.name == craftTrigger for item in collisionGroup]:
+                continue
+            objects.append(
+                Item(
+                    collisionGroup[0].rect.x,
+                    collisionGroup[0].rect.y,
+                    craft["Result"]["Name"],
+                    craft["Result"]["Count"],
+                )
+            )
+            craftSound.play()
+            rlist = []  # items to be removed
             for craftItem in craft["Components"]:
                 for item in collisionGroup:
-                    if (
-                        item.name == craftItem["Name"]
-                        and item.count >= craftItem["Count"]
-                    ):
+                    if item.name == craftItem["Name"] and item.count >= craftItem["Count"]:
+                        item.count -= craftItem["Count"]
+                        if item.count < 1:
+                            rlist.append(item)
+            for item in rlist:
+                objects.remove(item)
+
+        # scrolling of the game window
+        if freeCam:
+            if True in mouseDown:
+                x_offset -= mouseRelX
+                y_offset -= mouseRelY
+        else:
+            x_offset = ships[name].rect.centerx - window_width / 2
+            y_offset = ships[name].rect.centery - window_height / 2
+
+        # checking for available upgrades
+        for i, upgrade in enumerate(upgrades):
+            for cost in upgrade["Cost"]:
+                nextItem = False
+                for slot in (*ships[name].slots, *ships[name].hotBarSlots):
+                    if cost["Name"] == slot.name and cost["Count"] <= slot.count:
+                        nextItem = True
                         break
-                else:
-                    break
+                if nextItem:
+                    continue
+                break
             else:
+                upgradeFound = True
+                upgradeID = i
                 break
         else:
-            foundRecipe = False
-        if not foundRecipe:
-            continue
-        if not True in [item.name == craftTrigger for item in collisionGroup]:
-            continue
-        objects.append(
-            Item(
-                collisionGroup[0].rect.x,
-                collisionGroup[0].rect.y,
-                craft["Result"]["Name"],
-                craft["Result"]["Count"],
-            )
-        )
-        craftSound.play()
-        rlist = []  # items to be removed
-        for craftItem in craft["Components"]:
-            for item in collisionGroup:
-                if item.name == craftItem["Name"] and item.count >= craftItem["Count"]:
-                    item.count -= craftItem["Count"]
-                    if item.count < 1:
-                        rlist.append(item)
-        for item in rlist:
-            objects.remove(item)
+            upgradeFound = False
+            upgradeID = None
 
-    # scrolling of the game window
-    if freeCam:
-        if True in mouseDown:
-            x_offset -= mouseRelX
-            y_offset -= mouseRelY
-    else:
-        x_offset = ships[name].rect.centerx - window_width / 2
-        y_offset = ships[name].rect.centery - window_height / 2
+        # checking for kill events
+        if ships[name].rect.y > ships[name].pressure_limit:
+            await kill("High pressure.")
 
-    # checking for available upgrades
-    for i, upgrade in enumerate(upgrades):
-        for cost in upgrade["Cost"]:
-            nextItem = False
-            for slot in (*ships[name].slots, *ships[name].hotBarSlots):
-                if cost["Name"] == slot.name and cost["Count"] <= slot.count:
-                    nextItem = True
-                    break
-            if nextItem:
-                continue
-            break
+        if ships[name].health < 1:
+            await kill("Ship damaged too much.")
+
+        # setting inventory shift
+        if inventoryView and inventoryX > window_width - inventoryWidth:
+            inventoryShift = -3
+        elif not inventoryView and inventoryX < window_width:
+            inventoryShift = 3
         else:
-            upgradeFound = True
-            upgradeID = i
-            break
-    else:
-        upgradeFound = False
-        upgradeID = None
+            inventoryShift = 0
 
-    # checking for kill events
-    if ships[name].rect.y > ships[name].pressure_limit:
-        kill("High pressure.")
-
-    if ships[name].health < 1:
-        kill("Ship damaged too much.")
-
-    # setting inventory shift
-    if inventoryView and inventoryX > window_width - inventoryWidth:
-        inventoryShift = -3
-    elif not inventoryView and inventoryX < window_width:
-        inventoryShift = 3
-    else:
-        inventoryShift = 0
-
-    # creating bubbles & removing bubbles
-    if (ships[name].disabled and randint(0, 10) == 0) or (
-        abs(ships[name].vel) < 1 and randint(0, 30) == 0
-    ):
-        bubbles.append(
-            Particle(
-                "Bubble",
-                ships[name].rect.x + randint(-30, 30),
-                ships[name].rect.y,
-                -1.5,
-                0,
+        # creating bubbles & removing bubbles
+        if (ships[name].disabled and randint(0, 10) == 0) or (
+            abs(ships[name].vel) < 1 and randint(0, 30) == 0
+        ):
+            bubbles.append(
+                Particle(
+                    "Bubble",
+                    ships[name].rect.x + randint(-30, 30),
+                    ships[name].rect.y,
+                    -1.5,
+                    0,
+                )
             )
-        )
-    for bubble in bubbles:
-        if bubble.outOfView:
-            bubbles.remove(bubble)
+        for bubble in bubbles:
+            if bubble.outOfView:
+                bubbles.remove(bubble)
 
-    # setting events
-    if (
-        randint(0, round(fps * eventChance)) == 0
-        and time() - timeSinceLastEvent > eventGap
-        and not eventOccurring
-    ):
-        events = eventsCopy
-        eventOccurring = True
-        timeSinceLastEvent = time()
-        eventType = choice(events)
-        if eventType["Type"] == "Rain":
-            try:
-                eventType["Direction"]
-            except:
-                eventType["Direction"] = randint(-5, 5)
-            try:
-                eventType["Fall Speed"]
-            except:
-                eventType["Fall Speed"] = randint(5, 15)
+        # setting events
+        if (
+            randint(0, round(fps * eventChance)) == 0
+            and time() - timeSinceLastEvent > eventGap
+            and not eventOccurring
+        ):
+            events = eventsCopy
+            eventOccurring = True
+            timeSinceLastEvent = time()
+            eventType = choice(events)
+            if eventType["Type"] == "Rain":
+                try:
+                    eventType["Direction"]
+                except:
+                    eventType["Direction"] = randint(-5, 5)
+                try:
+                    eventType["Fall Speed"]
+                except:
+                    eventType["Fall Speed"] = randint(5, 15)
 
-            # note summon range start is added to ship x and summon range end is subtracted to ship x
-            if eventType["Direction"] > 0:
-                eventType["Summon Range Start"] = window_width // 2
-                eventType["Summon Range End"] = 0
-            elif eventType["Direction"] < 0:
-                eventType["Summon Range Start"] = 0
-                eventType["Summon Range End"] = window_width // 2
-            else:
-                eventType["Summon Range Start"] = window_width // 2
-                eventType["Summon Range End"] = window_width // 2
-        if eventType["Type"] == "Value Mod":
-            exec(f"original_value = {eventType["Value"]}")
-            exec(f"{eventType["Value"]} {eventType["Operator"]} {eventType["Change"]}")
+                # note summon range start is added to ship x and summon range end is subtracted to ship x
+                if eventType["Direction"] > 0:
+                    eventType["Summon Range Start"] = window_width // 2
+                    eventType["Summon Range End"] = 0
+                elif eventType["Direction"] < 0:
+                    eventType["Summon Range Start"] = 0
+                    eventType["Summon Range End"] = window_width // 2
+                else:
+                    eventType["Summon Range Start"] = window_width // 2
+                    eventType["Summon Range End"] = window_width // 2
+            if eventType["Type"] == "Value Mod":
+                exec(f"original_value = {eventType["Value"]}")
+                exec(f"{eventType["Value"]} {eventType["Operator"]} {eventType["Change"]}")
 
-    # event script
-    if eventOccurring and eventType is not None:
-        if eventType["Type"] == "Rain":
-            if randint(0, round(fps * eventType["Summon Speed"])) == 0:
-                objects.append(
-                    Rain(
-                        randint(
-                            ships[name].rect.centerx - eventType["Summon Range Start"],
-                            ships[name].rect.centerx + eventType["Summon Range End"],
-                        ),
-                        sky_start - window_height,
-                        eventType["Summon"],
-                        eventType["Direction"],
-                        eventType["Fall Speed"],
-                        eventType["Rain"] == "Drop",
+        # event script
+        if eventOccurring and eventType is not None:
+            if eventType["Type"] == "Rain":
+                if randint(0, round(fps * eventType["Summon Speed"])) == 0:
+                    objects.append(
+                        Rain(
+                            randint(
+                                ships[name].rect.centerx - eventType["Summon Range Start"],
+                                ships[name].rect.centerx + eventType["Summon Range End"],
+                            ),
+                            sky_start - window_height,
+                            eventType["Summon"],
+                            eventType["Direction"],
+                            eventType["Fall Speed"],
+                            eventType["Rain"] == "Drop",
+                        )
                     )
+
+        # stopping event
+        if eventOccurring and eventType is not None:
+            if time() - timeSinceLastEvent > eventType["Duration"]:
+                if eventType["Type"] == "Value Mod":
+                    exec(f"{eventType["Value"]} = original_value")
+                eventOccurring = False
+                eventType = None
+
+        # summoning mobs
+        if randint(0, fps * mobSummonChance) == 0:
+            mobName = choice(mob_image_names)
+            objects.append(
+                Mob(
+                    randint(
+                        ships[name].rect.centerx - window_width // 2,
+                        ships[name].rect.centerx + window_width // 2,
+                    ),
+                    randint(*mobsData[mobName]["Summon Range"]),
+                    mobName,
+                    True,
+                    180,
+                    True,
+                )
+            )
+
+        window.fill((0, 0, 139))
+        window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
+        for obj in objects:
+            obj.display(window, x_offset, y_offset)
+
+        # rendering bubbles
+        for bubble in bubbles:
+            bubble.display(window, x_offset, y_offset)
+
+        for ship in ships:
+            ships[ship].display(window, x_offset, y_offset)
+
+        if True in mouseDown and is_slashing:
+            for pos in (
+                ships[name].hotBarSlots[ships[name].selectedSlot].data["After Images"]
+            ):
+                window.blit(
+                    assets[ships[name].hotBarSlots[ships[name].selectedSlot].name], pos
                 )
 
-    # stopping event
-    if eventOccurring and eventType is not None:
-        if time() - timeSinceLastEvent > eventType["Duration"]:
-            if eventType["Type"] == "Value Mod":
-                exec(f"{eventType["Value"]} = original_value")
-            eventOccurring = False
-            eventType = None
-
-    # summoning mobs
-    if randint(0, fps * mobSummonChance) == 0:
-        mobName = choice(mob_image_names)
-        objects.append(
-            Mob(
-                randint(
-                    ships[name].rect.centerx - window_width // 2,
-                    ships[name].rect.centerx + window_width // 2,
-                ),
-                randint(*mobsData[mobName]["Summon Range"]),
-                mobName,
-                True,
-                180,
-                True,
-            )
-        )
-
-    window.fill((0, 0, 139))
-    window.blit(assets["Sky"], (0, sky_start - 500 - y_offset))
-    for obj in objects:
-        obj.display(window, x_offset, y_offset)
-
-    # rendering bubbles
-    for bubble in bubbles:
-        bubble.display(window, x_offset, y_offset)
-
-    for ship in ships:
-        ships[ship].display(window, x_offset, y_offset)
-
-    if True in mouseDown and is_slashing:
-        for pos in (
-            ships[name].hotBarSlots[ships[name].selectedSlot].data["After Images"]
-        ):
-            window.blit(
-                assets[ships[name].hotBarSlots[ships[name].selectedSlot].name], pos
-            )
-
-    # displaying pressure
-    pg.draw.rect(window, (0, 0, 0), pressure_rect)
-    current_pressure = min(max(ships[name].rect.y / ships[name].pressure_limit, 0), 1)
-    current_pressure_rect.width = 92 * current_pressure
-    pg.draw.rect(
-        window,
-        (255 * current_pressure, 255 * (1 - current_pressure), 0),
-        current_pressure_rect,
-    )
-    pressureText.display(window)
-
-    # displaying health
-    current_health = max(ships[name].health / ships[name].max_health, 0)
-    current_health_rect.width = 92 * current_health
-    healthText.display(window)
-    pg.draw.rect(window, (0, 0, 0), healthRect)
-    pg.draw.rect(
-        window,
-        (255 * (1 - current_health), 255 * current_health, 0),
-        current_health_rect,
-    )
-
-    # displaying inventory & shifting inventory
-    inventoryX += inventoryShift
-    window.blit(assets[inventoryImageName], (inventoryX, inventoryY))
-    for slot in ships[name].slots:
-        if slot.count < 1:
-            slot.name = None
-        slot.rect.x += inventoryShift
-        if slot.name is not None:
-            window.blit(assets[slot.name], slot.rect)
-            blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
-
-    # displaying hotbar
-    window.blit(assets[hotbarImageName], (hotbarX, hotbarY))
-    for slot in ships[name].hotBarSlots:
-        if slot.count < 1:
-            slot.name = None
-        if slot.name is not None:
-            window.blit(assets[slot.name], slot.rect)
-            blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
-
-    # displaying ship.heldItem
-    if ships[name].heldItem.name is not None:
-        ships[name].heldItem.rect.center = mouseX, mouseY
-        window.blit(assets[ships[name].heldItem.name], ships[name].heldItem.rect)
-        blit_text(
+        # displaying pressure
+        pg.draw.rect(window, (0, 0, 0), pressure_rect)
+        current_pressure = min(max(ships[name].rect.y / ships[name].pressure_limit, 0), 1)
+        current_pressure_rect.width = 92 * current_pressure
+        pg.draw.rect(
             window,
-            ships[name].heldItem.count,
-            ships[name].heldItem.rect.topleft,
-            (255, 255, 255),
-            20,
+            (255 * current_pressure, 255 * (1 - current_pressure), 0),
+            current_pressure_rect,
+        )
+        pressureText.display(window)
+
+        # displaying health
+        current_health = max(ships[name].health / ships[name].max_health, 0)
+        current_health_rect.width = 92 * current_health
+        healthText.display(window)
+        pg.draw.rect(window, (0, 0, 0), healthRect)
+        pg.draw.rect(
+            window,
+            (255 * (1 - current_health), 255 * current_health, 0),
+            current_health_rect,
         )
 
-    # highlighting selected slot
-    window.blit(
-        assets["Selected Slot"],
-        (
-            ships[name].hotBarSlots[ships[name].selectedSlot].rect.x - 1,
-            ships[name].hotBarSlots[ships[name].selectedSlot].rect.y + 1,
-        ),
-    )
+        # displaying inventory & shifting inventory
+        inventoryX += inventoryShift
+        window.blit(assets[inventoryImageName], (inventoryX, inventoryY))
+        for slot in ships[name].slots:
+            if slot.count < 1:
+                slot.name = None
+            slot.rect.x += inventoryShift
+            if slot.name is not None:
+                window.blit(assets[slot.name], slot.rect)
+                blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
 
-    # upgrade displaying
-    if upgradeFound:
-        window.blit(assets["Upgrade"], upgradeRect)
-        upgradeRect.y += upgradeImageFloat
+        # displaying hotbar
+        window.blit(assets[hotbarImageName], (hotbarX, hotbarY))
+        for slot in ships[name].hotBarSlots:
+            if slot.count < 1:
+                slot.name = None
+            if slot.name is not None:
+                window.blit(assets[slot.name], slot.rect)
+                blit_text(window, slot.count, slot.rect.topleft, (255, 255, 255), 20)
 
-        if upgradeRect.y > window_height - 58:
-            upgradeImageFloat = -1
-        if upgradeRect.y < window_height - 78:
-            upgradeImageFloat = 1
+        # displaying ship.heldItem
+        if ships[name].heldItem.name is not None:
+            ships[name].heldItem.rect.center = mouseX, mouseY
+            window.blit(assets[ships[name].heldItem.name], ships[name].heldItem.rect)
+            blit_text(
+                window,
+                ships[name].heldItem.count,
+                ships[name].heldItem.rect.topleft,
+                (255, 255, 255),
+                20,
+            )
 
-    pg.display.update()
+        # highlighting selected slot
+        window.blit(
+            assets["Selected Slot"],
+            (
+                ships[name].hotBarSlots[ships[name].selectedSlot].rect.x - 1,
+                ships[name].hotBarSlots[ships[name].selectedSlot].rect.y + 1,
+            ),
+        )
 
-pg.quit()
-quit()
+        # upgrade displaying
+        if upgradeFound:
+            window.blit(assets["Upgrade"], upgradeRect)
+            upgradeRect.y += upgradeImageFloat
+
+            if upgradeRect.y > window_height - 58:
+                upgradeImageFloat = -1
+            if upgradeRect.y < window_height - 78:
+                upgradeImageFloat = 1
+
+        pg.display.update()
+
+
+    pg.quit()
+    quit()
+
+
+asyncio.run(main())
