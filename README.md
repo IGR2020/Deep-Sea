@@ -14,7 +14,8 @@ Also dont try to pin it to task bar.
 This is comming soon (end of 1.0), it will be in the "releases" section on the right of the page.
 
 ## Browser
-This is also comming soon (probably by 10/9/24), this will be on the itch.io the link will be here.
+You can play the game using this link!
+https://igr2020.itch.io/deep-sea
 
 # Update Logs
 ## Beta 1
@@ -48,3 +49,4 @@ This is also comming soon (probably by 10/9/24), this will be on the itch.io the
 + Hoe & Slashing.
 + Octopus!
 + Value Mod Events & Scale Based Item Drops.
++ Playable in Browser!
