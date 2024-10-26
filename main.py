@@ -3,6 +3,7 @@ from functions import *
 import math
 from random import randint, choice
 from time import time
+from assets import assets
 from assets import *
 from menu import kill
 from GUI import Text

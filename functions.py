@@ -59,7 +59,7 @@ def load_assets(path, size: int = None, scale: float = None, getSubDirsAsList=Fa
     return sprites
 
 
-def load_assets_list(path, size: int = None, scale: float = None):
+def load_assets_list(path, size: tuple[int, int] = None, scale: float = None):
     sprites = []
     for file in listdir(path):
         if not isfile(join(path, file)):
